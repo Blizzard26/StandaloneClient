@@ -1,20 +1,21 @@
 package org.stt.query;
 
-import com.google.common.base.Optional;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import org.joda.time.DateTime;
-import org.stt.model.TimeTrackingItem;
-import org.stt.persistence.IOUtil;
-import org.stt.persistence.ItemReader;
-import org.stt.persistence.ItemReaderProvider;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.joda.time.DateTime;
+import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.IOUtil;
+import org.stt.persistence.ItemReader;
+import org.stt.persistence.ItemReaderProvider;
+
+import com.google.common.base.Optional;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 @Singleton
 public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
@@ -40,6 +41,30 @@ public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
 			}
 			return currentItem == null || currentItem.getEnd().isPresent() ? Optional
 					.<TimeTrackingItem> absent() : Optional.of(currentItem);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Override
+	public Optional<TimeTrackingItem> getPreviousTimeTrackingItem(TimeTrackingItem item) {
+		try (ItemReader reader = provider.provideReader()) {
+			Optional<TimeTrackingItem> currentItem;
+			TimeTrackingItem previousItem = null;
+			while ((currentItem = reader.read()).isPresent()) {
+				if (item.equals(currentItem.get()))
+				{
+					// Found current item
+					return previousItem != null ? Optional.of(previousItem)
+							 : Optional.<TimeTrackingItem> absent();
+				}
+				else
+				{
+					// Current item is not the one we're looking for, remember previous one
+					previousItem = currentItem.get();
+				}
+			}
+			return Optional.<TimeTrackingItem> absent();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -111,4 +136,6 @@ public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
             throw new RuntimeException(e);
         }
     }
+
+
 }

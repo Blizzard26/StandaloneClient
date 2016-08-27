@@ -26,6 +26,7 @@ import java.util.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.BDDMockito.given;
 
 @RunWith(Theories.class)
@@ -146,6 +147,39 @@ public class DefaultTimeTrackingItemQueriesTest {
 
         // THEN
         assertThat(result.get(), is(unfinishedItem));
+    }
+    
+    @Test
+    public void shouldFindPreviousItem()
+    {
+        // GIVEN
+    	TimeTrackingItem previousItem = new TimeTrackingItem(null, DateTime.now().minusMinutes(5), DateTime.now());
+        TimeTrackingItem unfinishedItem = new TimeTrackingItem(null,
+                DateTime.now(), DateTime.now().plusMillis(1));
+        given(reader.read()).willReturn(Optional.of(previousItem)).willReturn(Optional.of(unfinishedItem))
+                .willReturn(Optional.<TimeTrackingItem>absent());
+
+        // WHEN
+        Optional<TimeTrackingItem> result = sut.getPreviousTimeTrackingItem(unfinishedItem);
+
+        // THEN
+        assertThat(result, is(previousItem));
+    }
+    
+    @Test
+    public void shouldNotFindPreviousItem()
+    {
+        // GIVEN
+        TimeTrackingItem unfinishedItem = new TimeTrackingItem(null,
+                DateTime.now(), DateTime.now().plusMillis(1));
+        given(reader.read()).willReturn(Optional.of(unfinishedItem))
+                .willReturn(Optional.<TimeTrackingItem>absent());
+
+        // WHEN
+        Optional<TimeTrackingItem> result = sut.getPreviousTimeTrackingItem(unfinishedItem);
+
+        // THEN
+        assertThat(result, is(Optional.<TimeTrackingItem>absent()));
     }
 
     private void givenReaderReturns(TimeTrackingItem... items) {

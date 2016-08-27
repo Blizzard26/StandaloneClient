@@ -12,6 +12,8 @@ public interface TimeTrackingItemQueries {
 	 * is active or available.
 	 */
 	Optional<TimeTrackingItem> getCurrentTimeTrackingitem();
+	
+	Optional<TimeTrackingItem> getPreviousTimeTrackingItem(TimeTrackingItem item);
 
 	/**
 	 * Returns a list with all days that have tracking items.
