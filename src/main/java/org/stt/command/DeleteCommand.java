@@ -3,6 +3,8 @@ package org.stt.command;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemPersister;
 
+import com.google.common.base.Optional;
+
 import java.io.IOException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -26,4 +28,9 @@ public class DeleteCommand extends PersistingCommand {
             throw new RuntimeException(e);
         }
     }
+    
+	@Override
+	public Optional<TimeTrackingItem> getItem() {
+		return Optional.<TimeTrackingItem>absent();
+	}
 }
