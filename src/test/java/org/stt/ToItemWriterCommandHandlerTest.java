@@ -217,7 +217,7 @@ public class ToItemWriterCommandHandlerTest {
                 expectedStart, expectedEnd);
         // WHEN
         Optional<TimeTrackingItem> result = sut
-                .executeCommand("comment from 12:00 to 13:00");
+                .executeCommand("comment from 12:00 to 13:00").getItem();
 
         // THEN
         assertThat(result, is(Optional.of(expectedItem)));
@@ -234,7 +234,7 @@ public class ToItemWriterCommandHandlerTest {
                 expectedStart, expectedEnd);
         // WHEN
         Optional<TimeTrackingItem> result = sut
-                .executeCommand("comment since 12:00 until 13:00");
+                .executeCommand("comment since 12:00 until 13:00").getItem();
 
         // THEN
         assertThat(result, is(Optional.of(expectedItem)));
@@ -246,7 +246,7 @@ public class ToItemWriterCommandHandlerTest {
 
         // WHEN
         Optional<TimeTrackingItem> result = sut
-                .executeCommand("no t from 2014.06.22 14:43:14 to 2014.06.22 14:58:41");
+                .executeCommand("no t from 2014.06.22 14:43:14 to 2014.06.22 14:58:41").getItem();
 
         // THEN
         TimeTrackingItem item = result.get();
@@ -267,7 +267,7 @@ public class ToItemWriterCommandHandlerTest {
                 expectedStart, expectedEnd);
         // WHEN
         Optional<TimeTrackingItem> result = sut
-                .executeCommand("com ment 12:00 to 13:00");
+                .executeCommand("com ment 12:00 to 13:00").getItem();
 
         // THEN
         assertThat(result, is(Optional.of(expectedItem)));

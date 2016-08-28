@@ -2,6 +2,7 @@ package org.stt.cli;
 
 import com.google.common.base.Optional;
 import org.joda.time.DateTime;
+import org.stt.command.Command;
 import org.stt.model.TimeTrackingItem;
 
 import java.io.Closeable;
@@ -18,7 +19,7 @@ public interface CommandHandler extends Closeable {
 	 * @param command
 	 * @return the created/updated item or {@link Optional#absent()}
 	 */
-	Optional<TimeTrackingItem> executeCommand(String command);
+	Command executeCommand(String command);
 
 	void endCurrentItem();
 

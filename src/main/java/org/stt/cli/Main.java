@@ -1,13 +1,43 @@
 package org.stt.cli;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.inject.Provider;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.logging.Logger;
+
 import org.stt.Configuration;
+import org.stt.command.Command;
+import org.stt.command.EndCurrentItemCommand;
+import org.stt.command.ResumeCommand;
 import org.stt.command.ToItemWriterCommandHandler;
-import org.stt.text.WorktimeCategorizer;
 import org.stt.model.TimeTrackingItem;
-import org.stt.persistence.*;
+import org.stt.persistence.BackupCreator;
+import org.stt.persistence.IOUtil;
+import org.stt.persistence.ItemPersister;
+import org.stt.persistence.ItemReader;
+import org.stt.persistence.ItemReaderProvider;
+import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.stt.STTItemPersister;
 import org.stt.persistence.stt.STTItemReader;
 import org.stt.query.DNFClause;
@@ -15,12 +45,11 @@ import org.stt.query.DefaultTimeTrackingItemQueries;
 import org.stt.query.FilteredItemReader;
 import org.stt.query.TimeTrackingItemQueries;
 import org.stt.reporting.WorkingtimeItemProvider;
+import org.stt.text.WorktimeCategorizer;
 
-import java.io.*;
-import java.util.*;
-import java.util.logging.Logger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.inject.Provider;
 
 /**
  * The starting point for the CLI
@@ -51,10 +80,13 @@ public class Main {
 
 		ToItemWriterCommandHandler tiw = new ToItemWriterCommandHandler(
 				itemPersister, timeTrackingItemQueries);
-		Optional<TimeTrackingItem> createdItem = tiw.executeCommand(comment);
+		Command executeCommand = tiw.executeCommand(comment);
+		Optional<TimeTrackingItem> createdItem = executeCommand.getItem();
 
 		if (currentItem.isPresent()) {
-			prettyPrintTimeTrackingItem(printTo, currentItem);
+			StringBuilder itemString = ItemFormattingHelper
+					.prettyPrintItem(currentItem);
+			printTo.println("stopped working on " + itemString.toString());
 		}
 		printTo.println("start working on "
 				+ createdItem.get().getComment().orNull());
@@ -123,25 +155,37 @@ public class Main {
 			throws IOException {
 		try (ToItemWriterCommandHandler tiw = new ToItemWriterCommandHandler(
 				itemPersister, timeTrackingItemQueries)) {
-			Optional<TimeTrackingItem> updatedItem = tiw
-					.executeCommand(ToItemWriterCommandHandler.COMMAND_FIN
-							+ " " + Joiner.on(" ").join(args));
-			if (updatedItem.isPresent()) {
-				prettyPrintTimeTrackingItem(printTo, updatedItem);
-			}
+			Optional<TimeTrackingItem> currentItem = timeTrackingItemQueries
+					.getCurrentTimeTrackingitem();
+			
+			Command executeCommand = tiw
+							.executeCommand(ToItemWriterCommandHandler.COMMAND_FIN
+									+ " " + Joiner.on(" ").join(args));
+			prettyPrintExecutedCommand(printTo, currentItem, executeCommand);
 		}
 	}
 
-	/**
-	 * @param printTo
-	 * @param updatedItem
-	 */
-	private void prettyPrintTimeTrackingItem(PrintStream printTo,
-			Optional<TimeTrackingItem> updatedItem) {
+	private void prettyPrintExecutedCommand(PrintStream printTo, Optional<TimeTrackingItem> currentItem, Command command) {
+		Optional<TimeTrackingItem> updatedItem = command.getItem();
 		if (updatedItem.isPresent()) {
-			StringBuilder itemString = ItemFormattingHelper
-					.prettyPrintItem(updatedItem);
-			printTo.println("stopped working on " + itemString.toString());
+			if (command instanceof EndCurrentItemCommand)
+			{
+				StringBuilder itemString = ItemFormattingHelper
+						.prettyPrintItem(updatedItem);
+				printTo.println("stopped working on " + itemString.toString());
+			}
+			else if (command instanceof ResumeCommand)
+			{
+				if (currentItem.isPresent()) {
+					StringBuilder itemString = ItemFormattingHelper
+							.prettyPrintItem(currentItem);
+					printTo.println("stopped working on " + itemString.toString());
+				}
+				
+				StringBuilder itemString = ItemFormattingHelper
+						.prettyPrintItem(updatedItem);
+				printTo.println("resumed working on " + itemString.toString());
+			}
 		}
 	}
 

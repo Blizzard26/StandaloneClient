@@ -33,16 +33,11 @@ public class ToItemWriterCommandHandler implements CommandHandler {
     }
 
     @Override
-    public Optional<TimeTrackingItem> executeCommand(String command) {
+    public Command executeCommand(String command) {
         checkNotNull(command);
         Command parsedCommand = parser.parseCommandString(command).or(NothingCommand.INSTANCE);
         parsedCommand.execute();
-        if (parsedCommand instanceof NewItemCommand) {
-            return Optional.of(((NewItemCommand) parsedCommand).newItem);
-        } else if (parsedCommand instanceof EndCurrentItemCommand) {
-            return Optional.of(((EndCurrentItemCommand) parsedCommand).endedItem);
-        }
-        return Optional.absent();
+        return parsedCommand;
     }
 
     @Override
