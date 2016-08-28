@@ -17,30 +17,30 @@ import static org.stt.g4.EnglishCommandsParser.CommandContext;
 public class CommandTextParser {
     private EnglishCommandsVisitor<Object> parserVisitor = new MyEnglishCommandsBaseVisitor();
 
-    public Object walk(final TokenStream stream, CommandContext commandContext) {
-        return commandContext.accept(parserVisitor);
+    public CommandTextItem walk(final TokenStream stream, CommandContext commandContext) {
+        return (CommandTextItem) commandContext.accept(parserVisitor);
     }
 
     private static class MyEnglishCommandsBaseVisitor extends EnglishCommandsBaseVisitor<Object> {
         @Override
-        public Object visitDate(@NotNull EnglishCommandsParser.DateContext ctx) {
+        public DateTime visitDate(@NotNull EnglishCommandsParser.DateContext ctx) {
             return new DateTime(ctx.year, ctx.month, ctx.day, 0, 0);
         }
 
         @Override
-        public Object visitDateTime(@NotNull EnglishCommandsParser.DateTimeContext ctx) {
+        public DateTime visitDateTime(@NotNull EnglishCommandsParser.DateTimeContext ctx) {
             DateTime result = ctx.date() != null ? (DateTime) visitDate(ctx.date()) : DateTime.now().withTimeAtStartOfDay();
             result = result.withHourOfDay(ctx.hour).withMinuteOfHour(ctx.minute).withSecondOfMinute(ctx.second);
             return result;
         }
 
         @Override
-        public Object visitSinceFormat(@NotNull EnglishCommandsParser.SinceFormatContext ctx) {
+        public DateTime[] visitSinceFormat(@NotNull EnglishCommandsParser.SinceFormatContext ctx) {
             return new DateTime[]{(DateTime) visitDateTime(ctx.start), ctx.end != null ? (DateTime) visitDateTime(ctx.end) : null};
         }
 
         @Override
-        public Object visitAgoFormat(@NotNull EnglishCommandsParser.AgoFormatContext ctx) {
+        public DateTime[] visitAgoFormat(@NotNull EnglishCommandsParser.AgoFormatContext ctx) {
             Duration duration;
             int amount = ctx.amount;
             EnglishCommandsParser.TimeUnitContext timeUnit = ctx.timeUnit();
@@ -57,7 +57,7 @@ public class CommandTextParser {
         }
 
         @Override
-        public Object visitFromToFormat(@NotNull EnglishCommandsParser.FromToFormatContext ctx) {
+        public DateTime[] visitFromToFormat(@NotNull EnglishCommandsParser.FromToFormatContext ctx) {
             DateTime start = (DateTime) visitDateTime(ctx.start);
             DateTime end = ctx.end != null ? (DateTime) visitDateTime(ctx.end) : null;
             return new DateTime[]{start, end};
@@ -73,25 +73,30 @@ public class CommandTextParser {
         }
 
         @Override
-        public Object visitItemWithComment(@NotNull EnglishCommandsParser.ItemWithCommentContext ctx) {
+        public CommandTextItem visitItemWithComment(@NotNull EnglishCommandsParser.ItemWithCommentContext ctx) {
             DateTime[] period = (DateTime[]) visitTimeFormat(ctx.timeFormat());
             if (period[1] != null) {
-                return new TimeTrackingItem(ctx.text, period[0], period[1]);
+                return new NewItemCommandTextItem(ctx.text, period[0], period[1]);
             } else {
-                return new TimeTrackingItem(ctx.text, period[0]);
+                return new NewItemCommandTextItem(ctx.text, period[0]);
             }
         }
 
         @Override
-        public Object visitFinCommand(@NotNull EnglishCommandsParser.FinCommandContext ctx) {
-            if (ctx.at != null) {
-                return visitDateTime(ctx.at);
+        public CommandTextItem visitFinCommand(@NotNull EnglishCommandsParser.FinCommandContext ctx) {
+            DateTime date = null;
+        	if (ctx.at != null) {
+        		date = visitDateTime(ctx.at);
             }
-            return DateTime.now();
+        	else {
+        		date = DateTime.now();
+        	}
+        	
+        	return new EndItemCommandTextItem(date, ctx.RESUME() != null);
         }
 
         @Override
-        public Object visitCommand(@NotNull CommandContext ctx) {
+        public CommandTextItem visitCommand(@NotNull CommandContext ctx) {
             if (ctx.finCommand() != null) {
                 return visitFinCommand(ctx.finCommand());
             } else if (ctx.itemWithComment() != null) {

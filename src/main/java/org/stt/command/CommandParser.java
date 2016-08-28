@@ -46,13 +46,10 @@ public class CommandParser {
         EnglishCommandsLexer lexer = new EnglishCommandsLexer(inputStream);
         TokenStream tokenStream = new CommonTokenStream(lexer);
         EnglishCommandsParser parser = new EnglishCommandsParser(tokenStream);
-        Object result = commandTextParser.walk(tokenStream, parser.command());
-        if (result instanceof TimeTrackingItem) {
-            TimeTrackingItem parsedItem = (TimeTrackingItem) result;
-            return Optional.<Command>of(new NewItemCommand(persister, parsedItem));
-        }
-        if (result instanceof DateTime) {
-            return endCurrentItemCommand((DateTime) result);
+        CommandTextItem result = commandTextParser.walk(tokenStream, parser.command());
+        if (result != null)
+        {
+			return result.getCommand(persister, timeTrackingItemQueries);
         }
         return Optional.absent();
     }
