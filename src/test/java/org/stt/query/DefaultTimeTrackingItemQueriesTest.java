@@ -163,7 +163,7 @@ public class DefaultTimeTrackingItemQueriesTest {
         Optional<TimeTrackingItem> result = sut.getPreviousTimeTrackingItem(unfinishedItem);
 
         // THEN
-        assertThat(result, is(previousItem));
+        assertThat(result.get(), is(previousItem));
     }
     
     @Test
