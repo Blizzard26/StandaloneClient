@@ -3,6 +3,7 @@ package org.stt.gui.jfx;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -86,6 +87,7 @@ import java.util.logging.Logger;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.stt.gui.jfx.STTOptionDialogs.Result;
 
+@Singleton
 public class STTApplication implements DeleteActionHandler, EditActionHandler,
         ContinueActionHandler {
 
