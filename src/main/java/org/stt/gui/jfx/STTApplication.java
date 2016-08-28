@@ -64,6 +64,7 @@ import org.stt.gui.jfx.text.CommandHighlighter;
 import org.stt.gui.jfx.text.ContextPopupCreator;
 import org.stt.gui.jfx.text.HighlightingOverlay;
 import org.stt.gui.jfx.text.PopupAtCaretPlacer;
+import org.stt.model.ItemModified;
 import org.stt.model.TimeTrackingItem;
 import org.stt.model.TimeTrackingItemFilter;
 import org.stt.query.TimeTrackingItemQueries;
@@ -263,6 +264,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                 updateAchievements();
             }
         });
+    }
+    
+    @Subscribe
+    public void updateOnModification(ItemModified event) {
+        updateItems();
     }
 
     private void updateItems() {

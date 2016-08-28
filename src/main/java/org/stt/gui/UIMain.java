@@ -15,6 +15,7 @@ import org.stt.config.YamlConfigService;
 import org.stt.config.ConfigModule;
 import org.stt.text.TextModule;
 import org.stt.event.EventBusModule;
+import org.stt.event.FileChangeListenerService;
 import org.stt.event.ItemLogService;
 import org.stt.event.ShuttingDown;
 import org.stt.event.TimePassedEvent;
@@ -81,8 +82,10 @@ public class UIMain extends Application {
         startService(injector, BackupCreator.class);
         startServiceInBackground(injector, AchievementService.class);
         startService(injector, ItemLogService.class);
+        startServiceInBackground(injector, FileChangeListenerService.class);
 
         application = injector.getInstance(STTApplication.class);
+        eventBus.register(application);
         WorktimePaneBuilder worktimePaneBuilder = injector.getInstance(WorktimePaneBuilder.class);
         eventBus.register(worktimePaneBuilder);
         application.addAdditional(worktimePaneBuilder);
