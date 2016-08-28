@@ -39,7 +39,7 @@ timeFormat:
 	|	fromTo=fromToFormat
 	|	;
 
-finCommand: FIN (AT? at=dateTime)?;
+finCommand: FIN (RESUME)? (AT? at=dateTime)?;
 
 itemWithComment returns [String text]:c=comment result=timeFormat { $text = $c.text; };
 
@@ -90,6 +90,7 @@ SINCE: 'since';
 SECONDS: 's' | 'sec' | 'secs' | 'second' | 'seconds';
 TO: 'to';
 UNTIL: 'until';
+RESUME: 'and resume';
 
 WS: [ \t\r\n]+ -> channel(HIDDEN);
 fragment DIGIT: [0-9];
