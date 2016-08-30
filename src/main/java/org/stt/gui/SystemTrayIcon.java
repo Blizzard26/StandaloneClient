@@ -12,10 +12,17 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
+import org.stt.command.CommandParser;
 import org.stt.event.ShuttingDown;
 import org.stt.gui.jfx.LogWorkWindowBuilder;
+import org.stt.model.FileChanged;
+import org.stt.model.ItemModified;
+import org.stt.model.TimeTrackingItem;
+import org.stt.query.TimeTrackingItemQueries;
 
+import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 
 import javafx.application.Platform;
@@ -34,15 +41,17 @@ public class SystemTrayIcon {
 
 	private LogWorkWindowBuilder logWorkWindowBuilder;
 
+	private TimeTrackingItemQueries searcher;
+
 	@Inject
 	public SystemTrayIcon(EventBus eventBus,
+			TimeTrackingItemQueries searcher,
 			LogWorkWindowBuilder logWorkWindowBuilder) {
 		this.eventBus = checkNotNull(eventBus);	
+		this.searcher = checkNotNull(searcher);
 		this.logWorkWindowBuilder = checkNotNull(logWorkWindowBuilder);
 	}
 	
-
-
 
 	public void start(Stage primaryStage) {
 		this.primaryStage = checkNotNull(primaryStage);
@@ -51,6 +60,8 @@ public class SystemTrayIcon {
 			return;
 		
 		Platform.setImplicitExit(false);
+		
+		eventBus.register(this);
 		try {
             // ensure awt toolkit is initialized.
             java.awt.Toolkit.getDefaultToolkit();
@@ -164,15 +175,28 @@ public class SystemTrayIcon {
 				}
 			});
             
-            trayIcon.displayMessage("Title", "MESSAGE HERE", java.awt.TrayIcon.MessageType.ERROR); //THIS IS THE LINE THAT SHOULD SHOW THE MESSAGE
-
+            
 
         } catch (java.awt.AWTException | IOException e) {
             LOG.log(Level.SEVERE, "Unable to init system tray", e);
         }
 	}
 
+    @Subscribe
+    public void onFileChanged(FileChanged event) {
+        Optional<TimeTrackingItem> currentTimeTrackingitem = searcher.getCurrentTimeTrackingitem();
+        
+        if (currentTimeTrackingitem.isPresent())
+        {
+        	TimeTrackingItem timeTrackingItem = currentTimeTrackingitem.get();
+        	StringBuilder stringBuilder = new StringBuilder();
+			stringBuilder.append("on ").append(CommandParser.itemToCommand(timeTrackingItem));
+			trayIcon.displayMessage("SimpleTimeTracking", stringBuilder.toString(), 
+        			java.awt.TrayIcon.MessageType.INFO); 
+        }
 
+    }
+	
 	private void exit() {
 		Platform.setImplicitExit(true);
 		primaryStage.close();
@@ -180,7 +204,6 @@ public class SystemTrayIcon {
 		eventBus.post(new ShuttingDown());
 	}
 
-	
 	private void showLogWorkWindow() {
 		
 		Platform.runLater(new Runnable() {
