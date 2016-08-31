@@ -12,11 +12,11 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
+import org.stt.Configuration;
 import org.stt.command.CommandParser;
 import org.stt.event.ShuttingDown;
 import org.stt.gui.jfx.LogWorkWindowBuilder;
 import org.stt.model.FileChanged;
-import org.stt.model.ItemModified;
 import org.stt.model.TimeTrackingItem;
 import org.stt.query.TimeTrackingItemQueries;
 
@@ -43,10 +43,14 @@ public class SystemTrayIcon {
 
 	private TimeTrackingItemQueries searcher;
 
+	private Configuration configuration;
+
 	@Inject
-	public SystemTrayIcon(EventBus eventBus,
+	public SystemTrayIcon(Configuration configuration,
+			EventBus eventBus,
 			TimeTrackingItemQueries searcher,
 			LogWorkWindowBuilder logWorkWindowBuilder) {
+		this.configuration = checkNotNull(configuration);
 		this.eventBus = checkNotNull(eventBus);	
 		this.searcher = checkNotNull(searcher);
 		this.logWorkWindowBuilder = checkNotNull(logWorkWindowBuilder);
@@ -59,7 +63,6 @@ public class SystemTrayIcon {
 		if (!SystemTray.isSupported())
 			return;
 		
-		Platform.setImplicitExit(false);
 		
 		eventBus.register(this);
 		try {
@@ -163,18 +166,20 @@ public class SystemTrayIcon {
             // add the application tray icon to the system tray.
             tray.add(trayIcon);
             
-            
-            primaryStage.iconifiedProperty().addListener(new ChangeListener<Boolean>() {
-
-				@Override
-				public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-					if (newValue.booleanValue() == true)
-					{
-	    				primaryStage.hide();
+            if (configuration.getMinimizedToTray())
+            {            
+            	Platform.setImplicitExit(false);
+	            primaryStage.iconifiedProperty().addListener(new ChangeListener<Boolean>() {
+	
+					@Override
+					public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+						if (newValue.booleanValue() == true)
+						{
+		    				primaryStage.hide();
+						}
 					}
-				}
-			});
-            
+				});
+            }
             
 
         } catch (java.awt.AWTException | IOException e) {
