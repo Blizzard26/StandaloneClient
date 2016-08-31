@@ -44,6 +44,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import org.joda.time.DateTime;
 import org.stt.text.ExpansionProvider;
+import org.stt.Configuration;
 import org.stt.command.Command;
 import org.stt.command.CommandParser;
 import org.stt.command.NewItemCommand;
@@ -112,9 +113,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     private AchievementService achievementService;
     private ExecutorService executorService;
     private ObservableList<AdditionalPaneBuilder> additionals = FXCollections.observableArrayList();
+	private Configuration configuration;
 
     @Inject
     STTApplication(STTOptionDialogs STTOptionDialogs,
+    			   Configuration configuration,
                    EventBus eventBus,
                    CommandParser commandParser,
                    ReportWindowBuilder reportWindowBuilder,
@@ -126,7 +129,8 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                    TimeTrackingItemQueries searcher,
                    AchievementService achievementService,
                    ExecutorService executorService) {
-        checkNotNull(timeTrackingItemListConfig);
+        this.configuration = checkNotNull(configuration);
+		checkNotNull(timeTrackingItemListConfig);
         this.executorService = checkNotNull(executorService);
         this.achievementService = checkNotNull(achievementService);
         this.searcher = checkNotNull(searcher);
@@ -377,7 +381,20 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                 public void handle(KeyEvent event) {
                     if (KeyCode.ESCAPE.equals(event.getCode())) {
                         event.consume();
-                        shutdown();
+                        if (currentCommand.getValue().length() > 0)
+                        {
+                        	currentCommand.setValue("");
+                        }
+                        else if (configuration.getMinimizedToTray())
+                    	{
+                    		minimizeToTray();
+                    	}
+                    	else
+                    	{
+                    		shutdown();
+                    	}
+                        
+                        
                     }
                 }
             });
@@ -563,8 +580,19 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         @FXML
         private void done() {
             executeCommand();
-            shutdown();
+            if (configuration.getMinimizedToTray())
+            {
+            	minimizeToTray();
+            }
+            else
+            {
+            	shutdown();
+            }
         }
+
+		private void minimizeToTray() {
+			stage.hide();
+		}
 
         @FXML
         void insert() {
