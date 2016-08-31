@@ -170,4 +170,8 @@ public class Configuration {
         return Integer.parseInt(getPropertiesReplaced(
                 "backupRetention", "0"));
     }
+    
+    public boolean getMinimizedToTray() {
+    	return Boolean.parseBoolean(getPropertiesReplaced("minimizedToTray", "true"));
+    }
 }
