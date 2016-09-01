@@ -45,6 +45,8 @@ public class SystemTrayIcon {
 
 	private Configuration configuration;
 
+	private Optional<TimeTrackingItem> activeItem = Optional.<TimeTrackingItem> absent();
+
 	@Inject
 	public SystemTrayIcon(Configuration configuration,
 			EventBus eventBus,
@@ -191,7 +193,7 @@ public class SystemTrayIcon {
     public void onFileChanged(FileChanged event) {
         Optional<TimeTrackingItem> currentTimeTrackingitem = searcher.getCurrentTimeTrackingitem();
         
-        if (currentTimeTrackingitem.isPresent())
+        if (currentTimeTrackingitem.isPresent() && !currentTimeTrackingitem.equals(activeItem))
         {
         	TimeTrackingItem timeTrackingItem = currentTimeTrackingitem.get();
         	StringBuilder stringBuilder = new StringBuilder();
@@ -199,6 +201,8 @@ public class SystemTrayIcon {
 			trayIcon.displayMessage("SimpleTimeTracking", stringBuilder.toString(), 
         			java.awt.TrayIcon.MessageType.INFO); 
         }
+        activeItem = currentTimeTrackingitem;
+        
 
     }
 	
