@@ -33,14 +33,22 @@ public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
 
 	@Override
 	public Optional<TimeTrackingItem> getCurrentTimeTrackingitem() {
+		Optional<TimeTrackingItem> latestTimeTrackingitem = getLatestTimeTrackingitem();
+		
+		return latestTimeTrackingitem.isPresent() && !latestTimeTrackingitem.get().getEnd().isPresent() ? 
+				latestTimeTrackingitem : Optional.<TimeTrackingItem>absent();
+		
+	}
+	
+	@Override
+	public Optional<TimeTrackingItem> getLatestTimeTrackingitem() {
 		try (ItemReader reader = provider.provideReader()) {
 			Optional<TimeTrackingItem> item;
 			TimeTrackingItem currentItem = null;
 			while ((item = reader.read()).isPresent()) {
 				currentItem = item.get();
 			}
-			return currentItem == null || currentItem.getEnd().isPresent() ? Optional
-					.<TimeTrackingItem> absent() : Optional.of(currentItem);
+			return currentItem == null ? Optional.<TimeTrackingItem> absent() : Optional.of(currentItem);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -62,6 +70,22 @@ public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
 				{
 					// Current item is not the one we're looking for, remember previous one
 					previousItem = currentItem.get();
+				}
+			}
+			return Optional.<TimeTrackingItem> absent();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Override
+	public Optional<TimeTrackingItem> getNextTimeTrackingTime(TimeTrackingItem item) {
+		try (ItemReader reader = provider.provideReader()) {
+			Optional<TimeTrackingItem> currentItem;
+			while ((currentItem = reader.read()).isPresent()) {
+				if (item.equals(currentItem.get()))
+				{
+					return reader.read();
 				}
 			}
 			return Optional.<TimeTrackingItem> absent();
@@ -136,6 +160,8 @@ public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
             throw new RuntimeException(e);
         }
     }
+
+
 
 
 }

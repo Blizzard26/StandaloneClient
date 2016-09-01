@@ -13,7 +13,11 @@ public interface TimeTrackingItemQueries {
 	 */
 	Optional<TimeTrackingItem> getCurrentTimeTrackingitem();
 	
+	Optional<TimeTrackingItem> getLatestTimeTrackingitem();
+	
 	Optional<TimeTrackingItem> getPreviousTimeTrackingItem(TimeTrackingItem item);
+	
+	Optional<TimeTrackingItem> getNextTimeTrackingTime(TimeTrackingItem item);
 
 	/**
 	 * Returns a list with all days that have tracking items.
@@ -30,4 +34,6 @@ public interface TimeTrackingItemQueries {
     Collection<TimeTrackingItem> queryItems(DNFClause dnfClause);
 
     Collection<TimeTrackingItem> queryAllItems();
+
+	
 }
