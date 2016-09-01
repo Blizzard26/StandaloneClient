@@ -74,6 +74,10 @@ public class CommandParser {
     public Command deleteCommandFor(TimeTrackingItem item) {
         return new DeleteCommand(persister, item);
     }
+    
+    public Command newCommandFor(TimeTrackingItem item) {
+    	return new NewItemCommand(persister, item);
+    }
 
     public static String itemToCommand(TimeTrackingItem item) {
         checkNotNull(item);
