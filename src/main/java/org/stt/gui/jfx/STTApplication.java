@@ -1,5 +1,6 @@
 package org.stt.gui.jfx;
 
+import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
@@ -297,8 +298,31 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     public void delete(TimeTrackingItem item) {
         checkNotNull(item);
         if (!askBeforeDeleting || sttOptionDialogs.showDeleteOrKeepDialog(viewAdapter.stage, item) == Result.PERFORM_ACTION) {
-            commandParser.deleteCommandFor(item).execute();
-            allItems.remove(item);
+        	Optional<TimeTrackingItem> previousItem = searcher.getPreviousTimeTrackingItem(item);
+        	Optional<TimeTrackingItem> nextItem = searcher.getNextTimeTrackingTime(item);
+        	
+        	
+        	if (previousItem.isPresent() && nextItem.isPresent() 
+        			&& previousItem.get().getComment().equals(nextItem.get().getComment())
+        			&& sttOptionDialogs.showCloseGapDialog(viewAdapter.stage, nextItem.get().getComment().or("")) == Result.PERFORM_ACTION) {
+        		TimeTrackingItem newItem;
+        		if (nextItem.get().getEnd().isPresent())
+    			{
+					newItem = new TimeTrackingItem(previousItem.get().getComment().orNull(), previousItem.get().getStart(), nextItem.get().getEnd().get());
+    			}
+    			else
+    			{
+    				newItem = new TimeTrackingItem(previousItem.get().getComment().orNull(), previousItem.get().getStart());
+    			}
+    			Command newItemCommand = commandParser.newCommandFor(newItem);
+        		newItemCommand.execute();
+        	}
+        	else
+        	{
+	            commandParser.deleteCommandFor(item).execute();
+	            allItems.remove(item);
+        	}
+            
         }
     }
 

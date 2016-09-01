@@ -12,6 +12,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+
+import org.stt.gui.jfx.STTOptionDialogs.Result;
 import org.stt.model.TimeTrackingItem;
 
 import java.io.IOException;
@@ -66,6 +68,16 @@ public class STTOptionDialogs {
                 String.format(localization.getString("itemCoversOtherItems.text"), numberOfCoveredItems));
     }
 
+	public Result showCloseGapDialog(Stage parent, String itemComment) {
+		OptionDialogBuilder<Result> dialogBuilder = new OptionDialogBuilder<>();
+        Button closeButton = new Button(localization.getString("close"));
+        final Button abortButton = new Button(localization.getString("keep"));
+        dialogBuilder.addButton(closeButton, Result.PERFORM_ACTION);
+        dialogBuilder.addDefaultButton(abortButton, Result.ABORT);
+
+        return dialogBuilder.showAndGetResult(parent, localization.getString("closeGap.title"),
+                String.format(localization.getString("closeGap.text"), itemComment));
+	}
 
     private static class OptionDialogBuilder<T> {
         private Stage stage = new Stage();
@@ -119,4 +131,6 @@ public class STTOptionDialogs {
     public enum Result {
         PERFORM_ACTION, ABORT
     }
+
+
 }
