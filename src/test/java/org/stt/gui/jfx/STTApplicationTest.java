@@ -26,7 +26,10 @@ import org.stt.validation.ItemAndDateValidator;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -71,8 +74,10 @@ public class STTApplicationTest {
         given(commandParser.endCurrentItemCommand(any(DateTime.class))).willReturn(Optional.<Command>absent());
         given(commandParser.deleteCommandFor(any(TimeTrackingItem.class))).willReturn(NothingCommand.INSTANCE);
 
+        Set<ExpansionProvider> expansionProviders = new HashSet<>(Collections.singleton(expansionProvider));
+        
         sut = new STTApplication(new STTOptionDialogs(resourceBundle), configuration, new EventBus(), commandParser, reportWindowBuilder,
-                expansionProvider, resourceBundle, new TimeTrackingItemListConfig(), new CommandTextConfig(), itemValidator, timeTrackingItemQueries, achievementService, executorService);
+                expansionProviders, resourceBundle, new TimeTrackingItemListConfig(), new CommandTextConfig(), itemValidator, timeTrackingItemQueries, achievementService, executorService);
         sut.viewAdapter = sut.new ViewAdapter(null) {
 
             @Override
