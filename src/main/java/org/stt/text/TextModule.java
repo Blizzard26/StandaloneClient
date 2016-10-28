@@ -2,7 +2,10 @@ package org.stt.text;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.multibindings.Multibinder;
+
 import org.stt.config.YamlConfigService;
+import org.stt.connector.jira.JiraAutoCompletionProvider;
 import org.stt.persistence.ItemReader;
 
 import java.io.IOException;
@@ -19,6 +22,9 @@ public class TextModule extends AbstractModule {
         bind(ItemGrouper.class).to(CommonPrefixGrouper.class);
         bind(ExpansionProvider.class).to(CommonPrefixGrouper.class);
         bind(ItemCategorizer.class).to(WorktimeCategorizer.class);
+
+    	Multibinder<ExpansionProvider> expansionProviderBinder = Multibinder.newSetBinder(binder(), ExpansionProvider.class);
+    	expansionProviderBinder.addBinding().to(CommonPrefixGrouper.class);
     }
 
     @Provides
