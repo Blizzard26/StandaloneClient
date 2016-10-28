@@ -1,15 +1,14 @@
 package org.stt.text;
 
+import java.io.IOException;
+import java.util.logging.Logger;
+
+import org.stt.config.YamlConfigService;
+import org.stt.persistence.ItemReader;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.multibindings.Multibinder;
-
-import org.stt.config.YamlConfigService;
-import org.stt.connector.jira.JiraAutoCompletionProvider;
-import org.stt.persistence.ItemReader;
-
-import java.io.IOException;
-import java.util.logging.Logger;
 
 /**
  * Created by dante on 04.12.14.
@@ -25,6 +24,7 @@ public class TextModule extends AbstractModule {
 
     	Multibinder<ExpansionProvider> expansionProviderBinder = Multibinder.newSetBinder(binder(), ExpansionProvider.class);
     	expansionProviderBinder.addBinding().to(CommonPrefixGrouper.class);
+    	expansionProviderBinder.addBinding().to(JiraExpansionProvider.class);
     }
 
     @Provides
