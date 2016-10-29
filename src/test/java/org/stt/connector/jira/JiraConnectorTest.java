@@ -59,19 +59,4 @@ public class JiraConnectorTest {
 		assertEquals("JRA-1", issue.getKey());
 	}
 	
-	@Test
-	public void testGetIssues() throws Exception
-	{
-		// GIVEN
-		sut.start();
-		
-		// WHEN
-		Collection<Issue> issues = sut.getIssues("JRA-1");
-		
-		// THEN
-		assertNotNull(issues);
-		assertNotEquals(0, issues.size());
-		
-	}
-
 }
