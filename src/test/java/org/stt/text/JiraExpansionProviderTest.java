@@ -1,19 +1,16 @@
 package org.stt.text;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.BDDMockito.given;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.connector.jira.JiraConnector;
-import org.stt.gui.jfx.text.AutoComplete.Match;
-import org.stt.text.JiraExpansionProvider;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
 
@@ -30,7 +27,7 @@ public class JiraExpansionProviderTest {
 		MockitoAnnotations.initMocks(this);
 		
 		given(jiraConnector.getIssue("JRA-7")).willReturn(issue);
-		given(issue.getDescription()).willReturn("BDA-7: Testing Issue");
+		given(issue.getSummary()).willReturn("Testing Issue");
 		
 	}
 
@@ -39,17 +36,14 @@ public class JiraExpansionProviderTest {
 	}
 
 	@Test
-	public void testGetMatches() {
+	public void testGetPossibleExpansions() {
 		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
 		
-		String text = "Testing JRA-7 replacement";
-		Collection<Match> matches = sut.getMatches(text, 13);
+		List<String> matches = sut.getPossibleExpansions("JRA-7");
 		
 		assertEquals(1, matches.size());
 		
-		Match match = matches.iterator().next();
-		
-		assertEquals("Testing BDA-7: Testing Issue replacement", match.apply(text));
+		assertEquals(": Testing Issue", matches.get(0));
 	}
 
 }
