@@ -28,7 +28,6 @@ public class JiraExpansionProviderTest {
 		
 		given(jiraConnector.getIssue("JRA-7")).willReturn(issue);
 		given(issue.getSummary()).willReturn("Testing Issue");
-		
 	}
 
 	@After
@@ -37,10 +36,42 @@ public class JiraExpansionProviderTest {
 
 	@Test
 	public void testGetPossibleExpansions() {
+		// GIVEN
 		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
 		
+		// WHEN
 		List<String> matches = sut.getPossibleExpansions("JRA-7");
 		
+		
+		// THEN
+		assertEquals(1, matches.size());
+		
+		assertEquals(": Testing Issue", matches.get(0));
+	}
+	
+	@Test
+	public void testGetPossibleExpansionsShouldHandleSubstring() {
+		// GIVEN
+		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
+		
+		// WHEN
+		List<String> matches = sut.getPossibleExpansions("Test JRA-7");
+		
+		// THEN
+		assertEquals(1, matches.size());
+		
+		assertEquals(": Testing Issue", matches.get(0));
+	}
+	
+	@Test
+	public void testGetPossibleExpansionsShouldHandleSpace() {
+		// GIVEN
+		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
+		
+		// WHEN
+		List<String> matches = sut.getPossibleExpansions(" JRA-7 ");
+		
+		// THEN
 		assertEquals(1, matches.size());
 		
 		assertEquals(": Testing Issue", matches.get(0));

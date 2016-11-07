@@ -83,14 +83,20 @@ public class JiraConnector implements Service {
 		{
 			IssueRestClient issueClient = client.getIssueClient();
 			Promise<Issue> issue = issueClient.getIssue(issueKey);
-
+			
 			jiraIssue = issue.get();
 			
 			return jiraIssue;
 		} 
-		catch (RestClientException | InterruptedException | ExecutionException e) 
+		catch (InterruptedException e) 
 		{
 			LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+			return null;
+		} catch (ExecutionException e) {
+			//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+			return null;
+		} catch (RestClientException e) {
+			//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
 			return null;
 		}
 	}
