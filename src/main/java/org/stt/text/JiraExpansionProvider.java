@@ -21,7 +21,14 @@ public class JiraExpansionProvider implements ExpansionProvider {
 	
 	@Override
 	public List<String> getPossibleExpansions(String text) {
-		Issue issue = jiraConnector.getIssue(text);
+		String queryText = text.trim();
+		int spaceIndex = queryText.lastIndexOf(' ');
+		if (spaceIndex > 0)
+		{
+			queryText = text.substring(spaceIndex, text.length()).trim();
+		}
+		
+		Issue issue = jiraConnector.getIssue(queryText);
 		
 		List<String> expansions = new ArrayList<>();
 		if (issue != null)
