@@ -47,4 +47,9 @@
 # 0 disables deletion of old backup files.
 # WARNING: this will delete files with name .stt-YYYY-mm-dd regardless who created them. If in doubt, leave this set to 0 and delete old backup files yourself.
 #backupRetention=0
+
+# Jira Settings
+#jiraURL="https://jira.atlassian.com/"
+#jiraUserName=
+#jiraPassword=
  
