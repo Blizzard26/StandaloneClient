@@ -32,9 +32,13 @@ import com.google.inject.Singleton;
 @Singleton
 public class Configuration {
 
-    private static final Logger LOG = Logger.getLogger(Configuration.class
+    
+	private static final Logger LOG = Logger.getLogger(Configuration.class
             .getName());
-    private static final Pattern ENV_PATTERN = Pattern
+    
+	private static final String STT_DIRECTORY = ".stt";
+	
+	private static final Pattern ENV_PATTERN = Pattern
             .compile(".*\\$(.*)\\$.*");
     private final Properties loadedProps;
 
@@ -65,7 +69,13 @@ public class Configuration {
                 return homeDirectory;
             }
         }
-        return new File(System.getProperty("user.home"));
+        File homeDir = new File(System.getProperty("user.home"));
+        File baseDir = new File(homeDir, STT_DIRECTORY);
+        
+    	if (!baseDir.exists())
+    		baseDir.mkdir();
+        
+		return baseDir;
     }
 
     private void createSttrc() {
@@ -113,7 +123,7 @@ public class Configuration {
     }
 
     public File getItemLogFile() {
-        String itemLogFile = getPropertiesReplaced("itemLogFile", "$HOME$/.stt_/itemlog");
+        String itemLogFile = getPropertiesReplaced("itemLogFile", "$HOME$/itemlog");
         return new File(itemLogFile);
     }
 

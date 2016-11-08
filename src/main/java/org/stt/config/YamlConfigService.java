@@ -20,6 +20,7 @@ public class YamlConfigService implements Service {
 
     private static final Logger LOG = Logger.getLogger(YamlConfigService.class
             .getName());
+	private static final String STT_DIRECTORY = ".stt";
     private final File sttYaml;
     private BaseConfig config;
 
@@ -35,7 +36,13 @@ public class YamlConfigService implements Service {
                 return homeDirectory;
             }
         }
-        return new File(System.getProperty("user.home"));
+        File homeDir = new File(System.getProperty("user.home"));
+        File baseDir = new File(homeDir, STT_DIRECTORY);
+        
+    	if (!baseDir.exists())
+    		baseDir.mkdir();
+        
+		return baseDir;
     }
 
     private void writeConfig() {
