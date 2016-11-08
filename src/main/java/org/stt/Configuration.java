@@ -185,9 +185,9 @@ public class Configuration {
     }
 
 	public URI getJiraURI() {
-		String jiraUri = getPropertiesReplaced("jiraURI",
-                "https://jira.atlassian.com/");
-		if (jiraUri != null)
+		String jiraUri = getPropertiesReplaced("jiraURL",
+                "");
+		if (jiraUri != null && jiraUri.length() > 0)
 		{
 			try {
 				return new URI(jiraUri);
