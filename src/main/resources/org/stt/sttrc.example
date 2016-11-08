@@ -1,7 +1,7 @@
 # This is an example properties file
 # Lines starting with the hash sign "#" and empty lines are ignored
 
-# Put this file to $HOME/.sttrc and it will be used automatically
+# Put this file to $HOME/.stt/.sttrc and it will be used automatically
 
 # You can use environment variables anywhere you like if they are enclosed by dollar signs ($).
 
