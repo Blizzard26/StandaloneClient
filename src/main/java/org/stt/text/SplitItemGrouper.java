@@ -30,11 +30,14 @@ public class SplitItemGrouper implements ItemGrouper, ExpansionProvider {
 		
 		Entry<String, Integer> nextKey = set.ceilingEntry(grp);
 		
-		String group = nextKey.getKey();
-		if (group.startsWith(grp))
+		if (nextKey != null)
 		{
-			group = group.substring(grp.length(), group.length());
-			return Arrays.asList(group);
+			String group = nextKey.getKey();
+			if (group.startsWith(grp))
+			{
+				group = group.substring(grp.length(), group.length());
+				return Arrays.asList(group);
+			}
 		}
 		
 		return Collections.emptyList();
