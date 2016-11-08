@@ -1,6 +1,7 @@
 package org.stt.connector.jira;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,7 +40,7 @@ public class JiraConnector implements Service {
 	private static final Logger LOG = Logger.getLogger(JiraConnector.class.getName());
 	
 
-	JiraRestClient client;
+	JiraRestClient client = null;
 	private Set<String> projectsCache;
 	private Configuration configuration;
 	private JiraRestClientFactory factory;
@@ -53,23 +54,32 @@ public class JiraConnector implements Service {
 	@Override
 	public void start() throws Exception {
 
-		AuthenticationHandler authenticationHandler;
-		String jiraUserName = configuration.getJiraUserName();
-		if (jiraUserName != null && jiraUserName.length() > 0)
+		URI jiraURI = configuration.getJiraURI();
+		
+		if (jiraURI != null)
 		{
-			authenticationHandler = new BasicHttpAuthenticationHandler(jiraUserName, configuration.getJiraPassword());
+			AuthenticationHandler authenticationHandler;
+			
+			String jiraUserName = configuration.getJiraUserName();
+			if (jiraUserName != null && jiraUserName.length() > 0)
+			{
+				authenticationHandler = new BasicHttpAuthenticationHandler(jiraUserName, configuration.getJiraPassword());
+			}
+			else
+			{
+				authenticationHandler = new AnonymousAuthenticationHandler();
+			}
+			
+			client = factory.create(jiraURI, authenticationHandler);
 		}
-		else
-		{
-			authenticationHandler = new AnonymousAuthenticationHandler();
-		}
-		client = factory.create(configuration.getJiraURI(), authenticationHandler);		
 	}
 
 	@Override
 	public void stop() {
 		try {
-			client.close();
+			if (client != null)
+				client.close();
+			client = null;
 		} catch (IOException e) {
 			LOG.log(Level.WARNING, "Exception while closing client connection", e);
 		}
@@ -77,75 +87,85 @@ public class JiraConnector implements Service {
 	
 	public Issue getIssue(String issueKey)
 	{	
-		Issue jiraIssue;
+		if (client != null)
+		{
+			try 
+			{
+				IssueRestClient issueClient = client.getIssueClient();
+				Promise<Issue> issue = issueClient.getIssue(issueKey);
 				
-		try 
+				Issue jiraIssue = issue.get();
+				
+				return jiraIssue;
+			} 
+			catch (InterruptedException e) 
+			{
+				LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+				return null;
+			} catch (ExecutionException e) {
+				//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+				return null;
+			} catch (RestClientException e) {
+				//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+				return null;
+			}
+		}
+		else
 		{
-			IssueRestClient issueClient = client.getIssueClient();
-			Promise<Issue> issue = issueClient.getIssue(issueKey);
-			
-			jiraIssue = issue.get();
-			
-			return jiraIssue;
-		} 
-		catch (InterruptedException e) 
-		{
-			LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
-			return null;
-		} catch (ExecutionException e) {
-			//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
-			return null;
-		} catch (RestClientException e) {
-			//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
 			return null;
 		}
 	}
 	
 	public Collection<Issue> getIssues(String issueKeyPrefix) 
 	{
-		int index = issueKeyPrefix.lastIndexOf('-');
-		
-		// Extract the project key
-		String projectKey;
-		if (index > 0)
-		{
-			projectKey = issueKeyPrefix.substring(0, index);
-		}
-		else
-		{
-			projectKey = issueKeyPrefix;
-		}
-		
-		// Check if the given project key belongs to an existing project
-		if (!getProjectNames().contains(projectKey))
-		{
-			return Collections.emptyList();
-		}
-		
-		// Get all issue of the project
-		SearchRestClient searchClient = client.getSearchClient();
-		Promise<SearchResult> searchResultPromise = searchClient.searchJql("project=\"" + projectKey + "\"", Integer.MAX_VALUE, 0, null);
-		
-		SearchResult searchResult;
-		try 
-		{
-			searchResult = searchResultPromise.get(30, TimeUnit.SECONDS);
-		} 
-		catch (InterruptedException | ExecutionException | TimeoutException e) 
-		{
-			LOG.log(Level.WARNING, "Exception while retrieving issues", e);
-			return Collections.emptyList();
-		}
-		
-		Iterable<Issue> issues = searchResult.getIssues();
-		
-		// Select all issues which start with the given prefix
 		List<Issue> resultList = new ArrayList<>();
-		for (Issue issue : issues)
+		
+		if (client != null)
 		{
-			if (issue.getKey().startsWith(issueKeyPrefix))
+			int index = issueKeyPrefix.lastIndexOf('-');
+			
+			// Extract the project key
+			String projectKey;
+			if (index > 0)
 			{
-				resultList.add(issue);
+				projectKey = issueKeyPrefix.substring(0, index);
+			}
+			else
+			{
+				projectKey = issueKeyPrefix;
+			}
+			
+			// Check if the given project key belongs to an existing project
+			if (!getProjectNames().contains(projectKey))
+			{
+				return Collections.emptyList();
+			}
+			
+			// Get all issue of the project
+			SearchRestClient searchClient = client.getSearchClient();
+			Promise<SearchResult> searchResultPromise = searchClient.searchJql("project=\"" + projectKey + "\"", Integer.MAX_VALUE, 0, null);
+			
+			SearchResult searchResult;
+			try 
+			{
+				searchResult = searchResultPromise.get(30, TimeUnit.SECONDS);
+			} 
+			catch (InterruptedException | ExecutionException | TimeoutException e) 
+			{
+				LOG.log(Level.WARNING, "Exception while retrieving issues", e);
+				return Collections.emptyList();
+			}
+			
+			Iterable<Issue> issues = searchResult.getIssues();
+			
+			// Select all issues which start with the given prefix
+			
+			for (Issue issue : issues)
+			{
+				if (issue.getKey().startsWith(issueKeyPrefix))
+				{
+					resultList.add(issue);
+				}
 			}
 		}
 		
@@ -163,25 +183,28 @@ public class JiraConnector implements Service {
 
 	private Set<String> internalGetProjectNames() 
 	{
-		ProjectRestClient projectClient = client.getProjectClient();
-		
-		Promise<Iterable<BasicProject>> projectsPromise = projectClient.getAllProjects();
-		
-		Iterable<BasicProject> projectsIterable;
-		try 
-		{
-			projectsIterable = projectsPromise.get(5000, TimeUnit.MILLISECONDS);
-		} 
-		catch (InterruptedException | ExecutionException | TimeoutException e) 
-		{
-			LOG.log(Level.WARNING, "Exception while retrieving projects", e);
-			return Collections.emptySet();
-		}
-		
 		Set<String> projects = new HashSet<>();
-		for (BasicProject project : projectsIterable)
+		if (client != null)
 		{
-			projects.add(project.getKey());
+			ProjectRestClient projectClient = client.getProjectClient();
+			
+			Promise<Iterable<BasicProject>> projectsPromise = projectClient.getAllProjects();
+			
+			Iterable<BasicProject> projectsIterable;
+			try 
+			{
+				projectsIterable = projectsPromise.get(5000, TimeUnit.MILLISECONDS);
+			} 
+			catch (InterruptedException | ExecutionException | TimeoutException e) 
+			{
+				LOG.log(Level.WARNING, "Exception while retrieving projects", e);
+				return Collections.emptySet();
+			}
+			
+			for (BasicProject project : projectsIterable)
+			{
+				projects.add(project.getKey());
+			}
 		}
 		return projects;
 	}
