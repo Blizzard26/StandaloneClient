@@ -182,7 +182,17 @@ gradle.taskGraph.whenReady {taskGraph ->
 	}
 }
 
+task copyResources(type: Copy) {
+    from (sourceSets.main.resources.srcDirs)
+    {
+        include 'Logo.*'
+    }
+    into { startScripts.outputDir }
+}
+
+
 startScripts {
+    dependsOn(copyResources)
     doLast {
         windowsScript.text = windowsScript.text.replace("java.exe",
                 "javaw.exe")
