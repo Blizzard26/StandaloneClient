@@ -181,3 +181,12 @@ gradle.taskGraph.whenReady {taskGraph ->
 		version += '-SNAPSHOT'
 	}
 }
+
+startScripts {
+    doLast {
+        windowsScript.text = windowsScript.text.replace("java.exe",
+                "javaw.exe")
+        windowsScript.text = windowsScript.text.replace("\"%JAVA_EXE%\" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %STANDALONE_CLIENT_OPTS%",
+                "start \"SimpleTimeTracking\" \"%JAVA_EXE%\" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %STANDALONE_CLIENT_OPTS%")
+    }
+}
