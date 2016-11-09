@@ -25,6 +25,7 @@ def javaHome = System.properties['java.home']
 
 sourceCompatibility = 1.8
 mainClassName='org.stt.StartWithJFX'
+applicationDefaultJvmArgs=["-Djava.util.logging.config.file=logging.properties"]
 
 ext.mainClass = mainClassName
 
@@ -183,6 +184,7 @@ gradle.taskGraph.whenReady {taskGraph ->
 }
 
 task copyResources(type: Copy) {
+    from 'logging.properties'
     from (sourceSets.main.resources.srcDirs)
     {
         include 'Logo.*'
