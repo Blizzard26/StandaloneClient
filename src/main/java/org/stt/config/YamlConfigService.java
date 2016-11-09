@@ -28,6 +28,7 @@ public class YamlConfigService implements Service {
         sttYaml = new File(determineBaseDir(), "stt.yaml");
     }
 
+    @SuppressWarnings("PMD.CollapsibleIfStatements")
     private static File determineBaseDir() {
         String envHOMEVariable = System.getenv("HOME");
         if (envHOMEVariable != null) {
@@ -40,7 +41,8 @@ public class YamlConfigService implements Service {
         File baseDir = new File(homeDir, STT_DIRECTORY);
         
     	if (!baseDir.exists())
-    		baseDir.mkdir();
+    		if (!baseDir.mkdir())
+                throw new RuntimeException("Cannot create stt dir");
         
 		return baseDir;
     }

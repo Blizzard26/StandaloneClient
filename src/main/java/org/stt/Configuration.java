@@ -61,6 +61,7 @@ public class Configuration {
         }
     }
 
+    @SuppressWarnings("PMD.CollapsibleIfStatements")
     public File determineBaseDir() {
         String envHOMEVariable = System.getenv("HOME");
         if (envHOMEVariable != null) {
@@ -73,7 +74,8 @@ public class Configuration {
         File baseDir = new File(homeDir, STT_DIRECTORY);
         
     	if (!baseDir.exists())
-    		baseDir.mkdir();
+    		if (!baseDir.mkdir())
+                throw new RuntimeException("Cannot create stt dir");
         
 		return baseDir;
     }
