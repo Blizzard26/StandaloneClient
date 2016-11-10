@@ -36,7 +36,8 @@ public class SplitItemGrouper implements ItemGrouper, ExpansionProvider {
 			if (group.startsWith(grp))
 			{
 				group = group.substring(grp.length(), group.length());
-				return Arrays.asList(group);
+				if (group.length() > 0)
+					return Arrays.asList(group);
 			}
 		}
 		
