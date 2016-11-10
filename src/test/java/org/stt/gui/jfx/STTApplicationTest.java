@@ -74,6 +74,10 @@ public class STTApplicationTest {
         given(commandParser.endCurrentItemCommand(any(DateTime.class))).willReturn(Optional.<Command>absent());
         given(commandParser.deleteCommandFor(any(TimeTrackingItem.class))).willReturn(NothingCommand.INSTANCE);
 
+        given(timeTrackingItemQueries.getPreviousTimeTrackingItem(any(TimeTrackingItem.class))).willReturn(Optional.absent());
+        given(timeTrackingItemQueries.getNextTimeTrackingTime(any(TimeTrackingItem.class))).willReturn(Optional.absent());
+
+        
         Set<ExpansionProvider> expansionProviders = new HashSet<>(Collections.singleton(expansionProvider));
         
         sut = new STTApplication(new STTOptionDialogs(resourceBundle), configuration, new EventBus(), commandParser, reportWindowBuilder,
