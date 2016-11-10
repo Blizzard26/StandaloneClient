@@ -39,6 +39,9 @@ public class SummingReportGenerator {
 		Map<String, Duration> collectingMap = new HashMap<>();
 
 		Duration uncoveredDuration = Duration.ZERO;
+		Duration workDuration = Duration.ZERO;
+		Duration pauseDuration = Duration.ZERO;
+		
 		Optional<TimeTrackingItem> optionalItem;
 		TimeTrackingItem lastItem = null;
 		while ((optionalItem = reader.read()).isPresent()) {
@@ -87,8 +90,9 @@ public class SummingReportGenerator {
 				return o1.getComment().compareTo(o2.getComment());
 			}
 		});
+		
 		return new Report(reportList, startOfReport, endOfReport,
-				uncoveredDuration);
+				uncoveredDuration, workDuration, pauseDuration);
 	}
 
 	public static class Report {
@@ -97,13 +101,18 @@ public class SummingReportGenerator {
 		private final DateTime start;
 		private final DateTime end;
 		private final Duration uncoveredDuration;
+		private Duration workTime;
+		private Duration pauseTime;
 
 		public Report(List<ReportingItem> reportingItems, DateTime start,
-				DateTime end, Duration uncoveredDuration) {
+				DateTime end, Duration uncoveredDuration, Duration workTime, 
+				Duration pauseTime) {
 			this.reportingItems = reportingItems;
 			this.start = start;
 			this.end = end;
 			this.uncoveredDuration = checkNotNull(uncoveredDuration);
+			this.workTime = workTime;
+			this.pauseTime = pauseTime;
 		}
 
 		public List<ReportingItem> getReportingItems() {
@@ -120,6 +129,14 @@ public class SummingReportGenerator {
 
 		public Duration getUncoveredDuration() {
 			return uncoveredDuration;
+		}
+		
+		public Duration getWorkTime() {
+			return workTime;
+		}
+
+		public Duration getPauseTime() {
+			return pauseTime;
 		}
 	}
 }

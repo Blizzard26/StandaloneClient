@@ -53,7 +53,7 @@ public class ReportBinding extends ObjectBinding<Report> {
 			report = createSummaryReportFor();
 		} else {
 			report = new Report(Collections.<ReportingItem> emptyList(), null,
-					null, Duration.ZERO);
+					null, Duration.ZERO, Duration.ZERO, Duration.ZERO);
 		}
 		return report;
 	}

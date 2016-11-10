@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
+
 <BorderPane fx:id="borderPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    <bottom>
       <Button mnemonicParsing="false" onAction="#closeWindow" text="%report.done" BorderPane.alignment="CENTER">
@@ -22,13 +26,14 @@
    <center>
       <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
          <children>
-            <TableView fx:id="tableForReport" prefHeight="300.0" prefWidth="400.0" VBox.vgrow="ALWAYS">
-               <columns>
-                  <TableColumn fx:id="columnForRoundedDuration" prefWidth="170.0" text="%report.rounded" />
-                  <TableColumn fx:id="columnForDuration" minWidth="0.0" prefWidth="120.0" text="%report.duration" />
-                  <TableColumn fx:id="columnForComment" prefWidth="-1.0" text="%report.comment" />
-               </columns>
-            </TableView>
+            <TreeTableView fx:id="treeForReport" prefHeight="300.0" prefWidth="400.0" showRoot="false">
+              <columns>
+                  <TreeTableColumn fx:id="columnForLogged" minWidth="20.0" prefWidth="30.0" text="%report.logged" />
+                <TreeTableColumn fx:id="columnForRoundedDuration" prefWidth="170.0" text="%report.rounded" />
+                <TreeTableColumn fx:id="columnForDuration" prefWidth="120.0" text="%report.duration" />
+                  <TreeTableColumn fx:id="columnForComment" prefWidth="-1.0" text="%report.comment" />
+              </columns>
+            </TreeTableView>
             <FlowPane hgap="10.0">
                <children>
                   <GridPane hgap="10.0">
@@ -79,6 +84,12 @@
                            </font>
                         </Label>
                         <Label fx:id="roundedDurationSum" text="roundedDurationSum" GridPane.columnIndex="1" />
+                        <Label text="%pauseSum" GridPane.rowIndex="1">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <Label fx:id="pauseSum" text="pauseSumValue" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                      </children>
                   </GridPane>
                </children>

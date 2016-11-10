@@ -1,9 +1,40 @@
 package org.stt.gui.jfx;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.stt.time.DateTimeHelper.FORMATTER_PERIOD_HHh_MMm_SSs;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.ResourceBundle;
+
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
+import org.stt.config.ReportWindowConfig;
+import org.stt.gui.jfx.binding.ReportBinding;
+import org.stt.gui.jfx.binding.STTBindings;
+import org.stt.model.ReportingItem;
+import org.stt.persistence.ItemReaderProvider;
+import org.stt.query.TimeTrackingItemQueries;
+import org.stt.reporting.SummingReportGenerator.Report;
+import org.stt.text.ItemGrouper;
+import org.stt.time.DateTimeHelper;
+import org.stt.time.DurationRounder;
+
 import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import javafx.beans.binding.*;
+
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.binding.ListBinding;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.binding.StringBinding;
+import javafx.beans.binding.When;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
@@ -15,11 +46,21 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.control.TableColumn.CellDataFeatures;
-import javafx.scene.control.TableColumn.SortType;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeTableCell;
+import javafx.scene.control.TreeTableColumn;
+import javafx.scene.control.TreeTableColumn.CellDataFeatures;
+import javafx.scene.control.TreeTableColumn.SortType;
+import javafx.scene.control.TreeTablePosition;
+import javafx.scene.control.TreeTableView;
+import javafx.scene.control.cell.TreeItemPropertyValueFactory;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
@@ -28,30 +69,6 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.PeriodFormatter;
-import org.joda.time.format.PeriodFormatterBuilder;
-import org.stt.text.ItemGrouper;
-import org.stt.config.ReportWindowConfig;
-import org.stt.gui.jfx.binding.ReportBinding;
-import org.stt.gui.jfx.binding.STTBindings;
-import org.stt.model.ReportingItem;
-import org.stt.persistence.ItemReaderProvider;
-import org.stt.query.TimeTrackingItemQueries;
-import org.stt.reporting.SummingReportGenerator.Report;
-import org.stt.time.DateTimeHelper;
-import org.stt.time.DurationRounder;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ResourceBundle;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.stt.time.DateTimeHelper.FORMATTER_PERIOD_HHh_MMm_SSs;
 
 public class ReportWindowBuilder {
     private final ItemReaderProvider readerProvider;
@@ -83,18 +100,22 @@ public class ReportWindowBuilder {
     }
 
     public void setupStage() throws IOException {
-        Stage stage = stageProvider.get();
+        try {
+			Stage stage = stageProvider.get();
 
-        ReportWindowController controller = new ReportWindowController(stage);
+			ReportWindowController controller = new ReportWindowController(stage);
 
-        ResourceBundle localization = ResourceBundle
-                .getBundle("org.stt.gui.Application");
-        FXMLLoader loader = new FXMLLoader(getClass().getResource(
-                "/org/stt/gui/jfx/ReportWindow.fxml"), localization);
-        loader.setController(controller);
-        loader.load();
+			ResourceBundle localization = ResourceBundle
+			        .getBundle("org.stt.gui.Application");
+			FXMLLoader loader = new FXMLLoader(getClass().getResource(
+			        "/org/stt/gui/jfx/ReportWindow.fxml"), localization);
+			loader.setController(controller);
+			loader.load();
 
-        stage.show();
+			stage.show();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
     }
 
     private ObservableValue<Report> createReportModel(
@@ -144,9 +165,11 @@ public class ReportWindowBuilder {
         private final String comment;
         private final Duration duration;
         private final Duration roundedDuration;
+		private boolean logged;
 
         public ListItem(String comment, Duration duration,
                         Duration roundedDuration) {
+        	this.logged = false;
             this.comment = comment;
             this.duration = duration;
             this.roundedDuration = roundedDuration;
@@ -163,19 +186,29 @@ public class ReportWindowBuilder {
         public Duration getRoundedDuration() {
             return roundedDuration;
         }
+        
+        public boolean isLogged()
+        {
+        	return logged;
+        }
+        
+        public void setLogged(boolean logged)
+        {
+        	this.logged = logged;
+        }
     }
 
     public class ReportWindowController {
 
         private final Stage stage;
         @FXML
-        private TableColumn<ListItem, String> columnForRoundedDuration;
+        private TreeTableColumn<ListItem, String> columnForRoundedDuration;
         @FXML
-        private TableColumn<ListItem, String> columnForDuration;
+        private TreeTableColumn<ListItem, String> columnForDuration;
         @FXML
-        private TableColumn<ListItem, String> columnForComment;
+        private TreeTableColumn<ListItem, String> columnForComment;
         @FXML
-        private TableView<ListItem> tableForReport;
+        private TreeTableView<ListItem> treeForReport;
         @FXML
         private FlowPane reportControlsPane;
         @FXML
@@ -188,6 +221,8 @@ public class ReportWindowBuilder {
         private Label uncoveredTime;
         @FXML
         private Label roundedDurationSum;
+        @FXML
+        private Label pauseSum;
 
         public ReportWindowController(Stage stage) {
             this.stage = checkNotNull(stage);
@@ -229,13 +264,35 @@ public class ReportWindowBuilder {
             });
 
             ListBinding<ListItem> reportListModel = createReportingItemsListModel(reportModel);
-            tableForReport.setItems(reportListModel);
-            tableForReport.getSelectionModel().setCellSelectionEnabled(true);
+            //tableForReport.setItems(reportListModel);
+            //tableForReport.getSelectionModel().setCellSelectionEnabled(true);
+            TreeItem<ListItem> root = new TreeItem<ListItem>(new ListItem("", Duration.ZERO, Duration.ZERO))
+    		{
+
+				@Override
+				public boolean isLeaf() {
+					// TODO Auto-generated method stub
+					return super.isLeaf();
+				}
+
+				@Override
+				public ObservableList<TreeItem<ListItem>> getChildren() {
+					// TODO Auto-generated method stub
+					return super.getChildren();
+				}
+    	
+    		};
+			treeForReport.setRoot(root);
+			treeForReport.getSelectionModel().setCellSelectionEnabled(true);
 
             roundedDurationSum
                     .textProperty()
                     .bind(STTBindings
                             .formattedDuration(createBindingForRoundedDurationSum(reportListModel)));
+            
+            pauseSum.textProperty()
+		            .bind(STTBindings
+		                    .formattedDuration(createBindingForPauseSum(reportModel)));
 
             setRoundedDurationColumnCellFactoryToConvertDurationToString();
             setDurationColumnCellFactoryToConvertDurationToString();
@@ -248,12 +305,27 @@ public class ReportWindowBuilder {
             addSceneToStageAndSetStageToModal();
 
             columnForComment.prefWidthProperty().bind(
-                    tableForReport.widthProperty().subtract(
+                    treeForReport.widthProperty().subtract(
                             columnForRoundedDuration.widthProperty().add(
                                     columnForDuration.widthProperty())));
         }
 
-        private ObservableValue<Duration> createBindingForRoundedDurationSum(
+        private ObservableValue<Duration> createBindingForPauseSum(final ObservableValue<Report> reportModel) {
+        	return new ObjectBinding<Duration>() {
+                @Override
+                protected Duration computeValue() {
+                	return reportModel.getValue().getPauseTime();
+                }
+
+                {
+                    bind(reportModel);
+                }
+
+
+            };
+		}
+
+		private ObservableValue<Duration> createBindingForRoundedDurationSum(
                 final ListBinding<ListItem> items) {
             return new ObjectBinding<Duration>() {
                 @Override
@@ -343,47 +415,47 @@ public class ReportWindowBuilder {
 
         private void presetSortingToAscendingCommentColumn() {
             columnForComment.setSortType(SortType.ASCENDING);
-            tableForReport.getSortOrder().add(columnForComment);
+            treeForReport.getSortOrder().add(columnForComment);
         }
 
         private void setCommentColumnCellFactory() {
-            columnForComment
-                    .setCellValueFactory(new PropertyValueFactory<ListItem, String>(
-                            "comment"));
+        	columnForComment
+        			.setCellValueFactory(new TreeItemPropertyValueFactory<>(
+        					"comment"));
             if (config.isGroupItems()) {
                 setItemGroupingCellFactory();
             }
         }
 
         private void setItemGroupingCellFactory() {
-            columnForComment.setCellFactory(new Callback<TableColumn<ListItem, String>, TableCell<ListItem, String>>() {
-                @Override
-                public TableCell<ListItem, String> call(TableColumn<ListItem, String> param) {
-                    return new CommentTableCell();
-                }
-            });
+            columnForComment.setCellFactory(new Callback<TreeTableColumn<ListItem,String>, TreeTableCell<ListItem,String>>() {
+				@Override
+				public TreeTableCell<ListItem, String> call(TreeTableColumn<ListItem, String> param) {
+					return new CommentTableCell();
+				}
+			});
         }
 
-        @SuppressWarnings("rawtypes")
         private void addSelectionToClipboardListenerToTableForReport() {
-            tableForReport.getSelectionModel().getSelectedCells()
-                    .addListener(new ListChangeListener<TablePosition>() {
+            treeForReport.getSelectionModel().getSelectedCells()
+                    .addListener(new ListChangeListener<TreeTablePosition<ListItem, ?>>()
+            		{
 
-                        @Override
-                        public void onChanged(
-                                javafx.collections.ListChangeListener.Change<? extends TablePosition> change) {
-                            ObservableList<? extends TablePosition> selectedPositions = change
+						@Override
+						public void onChanged(
+								javafx.collections.ListChangeListener.Change<? extends TreeTablePosition<ListItem, ?>> change) {
+							ObservableList<? extends TreeTablePosition<ListItem, ?>> selectedPositions = change
                                     .getList();
                             setClipboardIfExactlyOneItemWasSelected(selectedPositions);
-                        }
-
+						}
+                    
                         private void setClipboardIfExactlyOneItemWasSelected(
-                                ObservableList<? extends TablePosition> selectedPositions) {
+                                ObservableList<? extends TreeTablePosition<ListItem, ?>> selectedPositions) {
                             if (selectedPositions.size() == 1) {
-                                TablePosition position = selectedPositions
+                                TreeTablePosition<ListItem, ?> position = selectedPositions
                                         .get(0);
-                                ListItem listItem = tableForReport.getItems()
-                                        .get(position.getRow());
+                                TreeItem<ListItem> treeItem = treeForReport.getTreeItem(position.getRow());
+                                ListItem listItem = treeItem.getValue();
                                 if (position.getTableColumn() == columnForRoundedDuration) {
                                     setClipBoard(listItem.getRoundedDuration());
                                 } else if (position.getTableColumn() == columnForDuration) {
@@ -418,14 +490,21 @@ public class ReportWindowBuilder {
 
         private void setDurationColumnCellFactoryToConvertDurationToString() {
             columnForDuration
-                    .setCellValueFactory(new PropertyValueFactory<ListItem, String>(
+                    .setCellValueFactory(new TreeItemPropertyValueFactory<ListItem, String>(
                             "duration") {
                         @Override
                         public ObservableValue<String> call(
                                 CellDataFeatures<ListItem, String> cellDataFeatures) {
-                            String duration = FORMATTER_PERIOD_HHh_MMm_SSs
-                                    .print(cellDataFeatures.getValue()
+                            TreeItem<ListItem> treeItem = cellDataFeatures.getValue();
+							ListItem value = treeItem.getValue();
+							
+							String duration = "";
+							if (value != null)
+							{
+								duration = FORMATTER_PERIOD_HHh_MMm_SSs
+                                    .print(value
                                             .getDuration().toPeriod());
+							}
                             return new SimpleStringProperty(duration);
                         }
                     });
@@ -433,14 +512,20 @@ public class ReportWindowBuilder {
 
         private void setRoundedDurationColumnCellFactoryToConvertDurationToString() {
             columnForRoundedDuration
-                    .setCellValueFactory(new PropertyValueFactory<ListItem, String>(
+                    .setCellValueFactory(new TreeItemPropertyValueFactory<ListItem, String>(
                             "roundedDuration") {
                         @Override
                         public ObservableValue<String> call(
                                 CellDataFeatures<ListItem, String> cellDataFeatures) {
-                            String duration = FORMATTER_PERIOD_HHh_MMm_SSs
-                                    .print(cellDataFeatures.getValue()
-                                            .getRoundedDuration().toPeriod());
+                            TreeItem<ListItem> treeItem = cellDataFeatures.getValue();
+							ListItem value = treeItem.getValue();
+							String duration = "";
+							if (value != null)
+							{
+								duration = FORMATTER_PERIOD_HHh_MMm_SSs
+	                                    .print(value
+	                                            .getRoundedDuration().toPeriod());
+							}
                             return new SimpleStringProperty(duration);
                         }
                     });
@@ -471,7 +556,7 @@ public class ReportWindowBuilder {
             return comboBox.getSelectionModel().selectedItemProperty();
         }
 
-        private class CommentTableCell extends TableCell<ListItem, String> {
+        private class CommentTableCell extends TreeTableCell<ListItem, String> {
             private FlowPane flowPane = new FlowPane();
 
             @Override
@@ -494,7 +579,7 @@ public class ReportWindowBuilder {
                         if (i < groupColors.length) {
                             Color color = groupColors[i];
                             Color selected = color.deriveColor(0, 1, 3, 1);
-                            BooleanBinding selectedRow = Bindings.equal(tableForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
+                            BooleanBinding selectedRow = Bindings.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
                             ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
                             partLabel.textFillProperty().bind(colorObjectBinding);
                         }
