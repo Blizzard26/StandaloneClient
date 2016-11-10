@@ -205,9 +205,13 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     private List<String> getSuggestedContinuations() {
         String textToExpand = getTextFromStartToCaret();
         List<String> expansions = new ArrayList<>();
-        for (ExpansionProvider provider : expansionProviders)
+        
+        if (textToExpand.length() >= 2)
         {
-        	expansions.addAll(provider.getPossibleExpansions(textToExpand));
+	        for (ExpansionProvider provider : expansionProviders)
+	        {
+	        	expansions.addAll(provider.getPossibleExpansions(textToExpand));
+	        }
         }
         
         return expansions;
@@ -469,7 +473,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                     }
                 }
             });
-            popup.show(stage);
+            //popup.show(stage);
             new PopupAtCaretPlacer(commandText, popup);
         }
 
