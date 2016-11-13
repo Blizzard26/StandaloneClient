@@ -46,8 +46,13 @@ public class JiraConnector implements Service {
 	private JiraRestClientFactory factory;
 	
 	@Inject public JiraConnector(Configuration configuration) {
+		this(configuration, new AsynchronousJiraRestClientFactory());
+	}
+	
+	public JiraConnector(Configuration configuration, JiraRestClientFactory factory)
+	{
 		this.configuration = configuration;
-		factory = new AsynchronousJiraRestClientFactory();
+		this.factory = factory;
 	}
 
 
@@ -94,19 +99,22 @@ public class JiraConnector implements Service {
 				IssueRestClient issueClient = client.getIssueClient();
 				Promise<Issue> issue = issueClient.getIssue(issueKey);
 				
-				Issue jiraIssue = issue.get();
+				Issue jiraIssue = issue.get(5000, TimeUnit.MILLISECONDS);
 				
 				return jiraIssue;
 			} 
 			catch (InterruptedException e) 
 			{
-				LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+				LOG.log(Level.WARNING, "Exception while retrieving issue", e);
 				return null;
 			} catch (ExecutionException e) {
-				//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+				//LOG.log(Level.WARNING, "Exception while retrieving issue", e);
 				return null;
 			} catch (RestClientException e) {
-				//LOG.log(Level.WARNING, "Exception while retrieving isuse", e);
+				//LOG.log(Level.WARNING, "Exception while retrieving issue", e);
+				return null;
+			} catch (TimeoutException e) {
+				LOG.log(Level.WARNING, "Timeout while retrieving issue", e);
 				return null;
 			}
 		}
