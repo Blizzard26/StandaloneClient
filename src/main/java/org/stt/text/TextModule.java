@@ -3,6 +3,7 @@ package org.stt.text;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+import org.stt.Configuration;
 import org.stt.config.YamlConfigService;
 import org.stt.persistence.ItemReader;
 
@@ -44,8 +45,8 @@ public class TextModule extends AbstractModule {
     }
     
     @Provides
-    SplitItemGrouper provideSplitItemGrouper(ItemReader reader, YamlConfigService yamlConfig) {
-    	SplitItemGrouper splitItemGrouper = new SplitItemGrouper();
+    SplitItemGrouper provideSplitItemGrouper(ItemReader reader, Configuration configuration) {
+    	SplitItemGrouper splitItemGrouper = new SplitItemGrouper(configuration);
     	try (ItemReader itemReader = reader)
     	{
     		splitItemGrouper.scanForGroups(itemReader);

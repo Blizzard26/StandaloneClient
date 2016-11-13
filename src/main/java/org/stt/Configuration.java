@@ -218,4 +218,8 @@ public class Configuration {
 	public String getJiraUserName() {
 		return getPropertiesReplaced("jiraUserName", "");
 	}
+
+	public String getSplitItemGrouperRegularExpression() {
+		return getPropertiesReplaced("splitItemGrouperRegularExpression", "\\s(:|\\||-)\\s");
+	}
 }

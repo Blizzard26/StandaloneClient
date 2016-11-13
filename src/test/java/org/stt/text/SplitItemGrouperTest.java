@@ -12,13 +12,18 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.stt.Configuration;
 import org.stt.ItemReaderTestHelper;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemReader;
+import static org.mockito.BDDMockito.*;
 
 public class SplitItemGrouperTest {
 	
-	private final SplitItemGrouper sut = new SplitItemGrouper();
+	@Mock
+	Configuration configuration;
+	
+	private SplitItemGrouper sut;
 
 	@Mock
 	private ItemReader itemReader;
@@ -26,6 +31,8 @@ public class SplitItemGrouperTest {
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
+		given(configuration.getSplitItemGrouperRegularExpression()).willReturn("\\s(:|\\||-)\\s");
+		sut = new SplitItemGrouper(configuration);
 	}
 
 	@After
@@ -73,7 +80,7 @@ public class SplitItemGrouperTest {
 		// GIVEN
 
 		// WHEN
-		String completeText = "test with: colon string";
+		String completeText = "test with : colon string";
 		List<String> result = sut.getGroupsOf(completeText);
 
 		// THEN
@@ -111,7 +118,7 @@ public class SplitItemGrouperTest {
 	@Test
 	public void shouldFindSubGroups() {
 		// GIVEN
-		String firstComment = "group: subgroup - one";
+		String firstComment = "group : subgroup - one";
 		String thirdComment = "group - subgroup2 one";
 		givenReaderReturnsItemsWithComment(firstComment, "group - subgroup | two",
 				thirdComment);
