@@ -5,11 +5,15 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.image.Image;
 import javafx.util.Callback;
+
+import org.stt.config.TimeTrackingItemListConfig;
 import org.stt.gui.jfx.TimeTrackingItemCell.ContinueActionHandler;
 import org.stt.gui.jfx.TimeTrackingItemCell.DeleteActionHandler;
 import org.stt.gui.jfx.TimeTrackingItemCell.EditActionHandler;
 import org.stt.model.TimeTrackingItem;
 import org.stt.model.TimeTrackingItemFilter;
+import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
 
 import java.util.ResourceBundle;
 
@@ -26,11 +30,17 @@ class TimeTrackingItemCellFactory implements
 			DeleteActionHandler deleteActionHandler,
 			EditActionHandler editActionHandler,
 			TimeTrackingItemFilter firstItemOfTheDayFilter,
-			ResourceBundle resourceBundle) {
+			ResourceBundle resourceBundle, 
+			ItemGrouper itemGrouper, 
+			WorktimeCategorizer workitemCategorizer, 
+			TimeTrackingItemListConfig timeTrackingItemListConfig) {
 		checkNotNull(continueActionHandler);
 		checkNotNull(deleteActionHandler);
 		checkNotNull(editActionHandler);
 		checkNotNull(resourceBundle);
+		checkNotNull(itemGrouper);
+		checkNotNull(workitemCategorizer);
+		checkNotNull(timeTrackingItemListConfig);
 
         Image deleteImage = new Image("/Delete.png", 25, 25, true,
                 true);
@@ -49,7 +59,10 @@ class TimeTrackingItemCellFactory implements
 				.editImage(editImage).runningImage(runningImage)
 				.fromToImage(fromToImage)
 				.firstItemOfTheDayFilter(firstItemOfTheDayFilter)
-				.resourceBundle(resourceBundle);
+				.resourceBundle(resourceBundle)
+				.itemGrouper(itemGrouper)
+				.workitemCategorizer(workitemCategorizer)
+				.timeTrackingItemListConfig(timeTrackingItemListConfig);
 	}
 
 	@Override

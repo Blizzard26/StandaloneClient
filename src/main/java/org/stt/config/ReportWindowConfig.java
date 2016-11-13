@@ -31,6 +31,10 @@ public class ReportWindowConfig implements Config {
     public List<String> getGroupColors() {
         return groupColors;
     }
+    
+    public String getBreakTimeColor() {
+		return breakTimeColor;
+	}
 
     @Override
     public void applyDefaults() {
@@ -44,7 +48,5 @@ public class ReportWindowConfig implements Config {
         	
     }
 
-	public String getBreakTimeColor() {
-		return breakTimeColor;
-	}
+	
 }
