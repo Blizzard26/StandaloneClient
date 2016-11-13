@@ -34,7 +34,7 @@ import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-
+import org.stt.text.ItemCategorizer.ItemCategory;
 
 public class TimeTrackingItemCellTest {
 
@@ -74,6 +74,8 @@ public class TimeTrackingItemCellTest {
 		
 		given(timeTrackingItemListConfig.getBreakTimeColor()).willReturn("RED");
 		given(timeTrackingItemListConfig.getGroupColors()).willReturn(Arrays.asList("BLUE"));
+		
+		given(workitemCategorizer.getCategory(anyString())).willReturn(ItemCategory.WORKTIME);
 		
 		Builder builder = new TimeTrackingItemCell.Builder();
 		ResourceBundle resourceBundle = ResourceBundle
