@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.joda.time.Duration;
 import org.stt.time.DateTimeHelper;
 
+import com.google.common.io.PatternFilenameFilter;
 import com.google.inject.Singleton;
 
 /**
@@ -73,10 +74,43 @@ public class Configuration {
         File homeDir = new File(System.getProperty("user.home"));
         File baseDir = new File(homeDir, STT_DIRECTORY);
         
+        if (baseDir.isFile())
+        {
+        	// Migrate from old to new structure
+        	
+        	File tempDir = new File(homeDir, STT_DIRECTORY + "_new");
+        	
+        	if (!tempDir.exists())
+        	{
+        		if (!tempDir.mkdir())
+        			throw new RuntimeException("Could not create temporary directory. Please ensure you have write access to "+tempDir.getAbsolutePath());
+        	}
+        	
+        	File[] fileList = homeDir.listFiles(new PatternFilenameFilter("\\.?stt.*"));
+        	
+        	if (fileList == null)
+        		throw new IllegalStateException("Cannot enumerate files in " + homeDir.getAbsolutePath());
+        	
+			for (File file : fileList)
+        	{
+        		if (!file.equals(tempDir))
+        		{
+	        		File destination = new File(tempDir, file.getName());
+					if (!file.renameTo(destination))
+						throw new RuntimeException("Cannot move file " + file.getAbsolutePath() + " to " + destination.getAbsolutePath());
+        		}
+        	}
+        	
+        	if (!tempDir.renameTo(baseDir))
+        		throw new RuntimeException("Cannot move temporary directory " + tempDir.getAbsolutePath() + " to " + baseDir.getAbsolutePath());
+        }
+        
     	if (!baseDir.exists())
+    	{
     		if (!baseDir.mkdir())
                 throw new RuntimeException("Cannot create stt dir");
-        
+    	}
+    		
 		return baseDir;
     }
 

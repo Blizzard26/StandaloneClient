@@ -56,6 +56,10 @@ public class BackupCreator implements Service {
 		}
 
 		File backupLocation = configuration.getBackupLocation();
+		
+		if (!backupLocation.exists() && !backupLocation.mkdirs())
+			throw new RuntimeException("cannot create backup location at " 
+					+ backupLocation.getAbsolutePath());
 
 		if (!backupLocation.canWrite()) {
 			throw new RuntimeException("cannot write to "
