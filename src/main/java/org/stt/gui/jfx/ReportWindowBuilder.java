@@ -6,7 +6,10 @@ import static org.stt.time.DateTimeHelper.FORMATTER_PERIOD_HHh_MMm_SSs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.joda.time.DateTime;
@@ -29,12 +32,11 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
-import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
-import javafx.beans.binding.ListBinding;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.binding.When;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
@@ -136,38 +138,58 @@ public class ReportWindowBuilder {
         return new ReportBinding(selectedDateTime, nextDay, readerProvider);
     }
 
-    private ListBinding<ListItem> createReportingItemsListModel(
-            final ObservableValue<Report> report) {
-        return new ListBinding<ListItem>() {
-            @Override
-            protected ObservableList<ListItem> computeValue() {
-                List<ReportingItem> reportingItems = report.getValue()
-                        .getReportingItems();
-                List<ListItem> resultList = new ArrayList<>();
-                for (ReportingItem reportItem : reportingItems) {
-                    resultList.add(new ListItem(reportItem.getComment(),
-                            reportItem.getDuration(), rounder
-                            .roundDuration(reportItem.getDuration())));
-                }
-                return FXCollections.observableArrayList(resultList);
-            }
+    private TreeItem<ReportItem> createReportingTreeModel(ObservableValue<Report> reportModel) {
+    	
+    	ReportItem rootItem = new ReportItem();
+    	
+    	for (ReportingItem item : reportModel.getValue().getReportingItems())
+    	{
+    		List<String> groups = itemGrouper.getGroupsOf(item.getComment());
+    		
+    		ReportItem reportItem = rootItem;
+    		for (int i = 0; i < groups.size() -1; i++) {
+				String group = groups.get(i);
+				reportItem = reportItem.getOrCreateChild(group);
+			}
+    		
+    		reportItem.addLeaf(new ReportItem(item.getComment(), item.getDuration(), rounder.roundDuration(item.getDuration())));
+    		
+    	}
+    	
+		return new TreeItemExtension(rootItem);
+	}
 
-            {
-                super.bind(report);
-            }
+	private final class TreeItemExtension extends TreeItem<ReportItem> {
+		
+		public TreeItemExtension(ReportItem item) {
+			super(item);			
+			List<TreeItem<ReportItem>> items = new ArrayList<>();
+			for (ReportItem i : getValue().getChildern())
+			{
+				items.add(new TreeItemExtension(i));
+			}
+			getChildren().setAll(items);
+			setExpanded(true);
+			
+		}
+	}
 
-
-        };
-    }
-
-    public static class ListItem {
+	public static class ReportItem {
 
         private final String comment;
         private final Duration duration;
         private final Duration roundedDuration;
 		private boolean logged;
+		
+		private final Map<String, ReportItem> children = new HashMap<>();
+		private final List<ReportItem> leafs = new ArrayList<>();
 
-        public ListItem(String comment, Duration duration,
+		public ReportItem() {
+			this("", Duration.ZERO, Duration.ZERO);
+		}
+		
+		
+        public ReportItem(String comment, Duration duration,
                         Duration roundedDuration) {
         	this.logged = false;
             this.comment = comment;
@@ -175,7 +197,40 @@ public class ReportWindowBuilder {
             this.roundedDuration = roundedDuration;
         }
 
-        public String getComment() {
+        public void addLeaf(ReportItem reportItem) {
+			leafs.add(reportItem);
+		}
+
+		public ReportItem getOrCreateChild(String group) {
+			ReportItem item = children.get(group);
+			if (item == null)
+			{
+				item = new ReportItem(group, Duration.ZERO, Duration.ZERO);
+				children.put(group, item);
+			}
+			return item;
+		}
+		
+		public List<ReportItem> getChildern()
+		{
+			List<ReportItem> l = new ArrayList<>();
+			
+			l.addAll(children.values());
+			l.addAll(leafs);
+			
+			Collections.sort(l, new Comparator<ReportItem>() {
+				@Override
+				public int compare(ReportItem o1, ReportItem o2) {
+					return o1.getComment().compareTo(o2.getComment());
+				}
+			});
+			
+			return l;
+		}
+
+	
+
+		public String getComment() {
             return comment;
         }
 
@@ -196,19 +251,36 @@ public class ReportWindowBuilder {
         {
         	this.logged = logged;
         }
+        
+        public String toString()
+        {
+        	StringBuilder s = new StringBuilder();
+        	
+        	s.append("'" + comment + "'-[");
+        	
+        	String sep = "";
+        	for (ReportItem item : getChildern())
+        	{
+        		s.append(sep);
+        		sep = ", ";
+        		s.append(item);
+        	}
+        	s.append("]");
+        	return s.toString();
+        }
     }
 
     public class ReportWindowController {
 
         private final Stage stage;
         @FXML
-        private TreeTableColumn<ListItem, String> columnForRoundedDuration;
+        private TreeTableColumn<ReportItem, String> columnForRoundedDuration;
         @FXML
-        private TreeTableColumn<ListItem, String> columnForDuration;
+        private TreeTableColumn<ReportItem, String> columnForDuration;
         @FXML
-        private TreeTableColumn<ListItem, String> columnForComment;
+        private TreeTableColumn<ReportItem, String> columnForComment;
         @FXML
-        private TreeTableView<ListItem> treeForReport;
+        private TreeTableView<ReportItem> treeForReport;
         @FXML
         private FlowPane reportControlsPane;
         @FXML
@@ -263,32 +335,16 @@ public class ReportWindowBuilder {
                 }
             });
 
-            ListBinding<ListItem> reportListModel = createReportingItemsListModel(reportModel);
-            //tableForReport.setItems(reportListModel);
-            //tableForReport.getSelectionModel().setCellSelectionEnabled(true);
-            TreeItem<ListItem> root = new TreeItem<ListItem>(new ListItem("", Duration.ZERO, Duration.ZERO))
-    		{
-
-				@Override
-				public boolean isLeaf() {
-					// TODO Auto-generated method stub
-					return super.isLeaf();
-				}
-
-				@Override
-				public ObservableList<TreeItem<ListItem>> getChildren() {
-					// TODO Auto-generated method stub
-					return super.getChildren();
-				}
-    	
-    		};
+            TreeItem<ReportItem> root = createReportingTreeModel(reportModel);
 			treeForReport.setRoot(root);
-			treeForReport.getSelectionModel().setCellSelectionEnabled(true);
+			treeForReport.getSelectionModel().setCellSelectionEnabled(false);
+			
+			//treeForReport.setShowRoot(true);
 
             roundedDurationSum
                     .textProperty()
                     .bind(STTBindings
-                            .formattedDuration(createBindingForRoundedDurationSum(reportListModel)));
+                            .formattedDuration(createBindingForRoundedDurationSum(reportModel)));
             
             pauseSum.textProperty()
 		            .bind(STTBindings
@@ -310,7 +366,9 @@ public class ReportWindowBuilder {
                                     columnForDuration.widthProperty())));
         }
 
-        private ObservableValue<Duration> createBindingForPauseSum(final ObservableValue<Report> reportModel) {
+  
+
+		private ObservableValue<Duration> createBindingForPauseSum(final ObservableValue<Report> reportModel) {
         	return new ObjectBinding<Duration>() {
                 @Override
                 protected Duration computeValue() {
@@ -326,19 +384,19 @@ public class ReportWindowBuilder {
 		}
 
 		private ObservableValue<Duration> createBindingForRoundedDurationSum(
-                final ListBinding<ListItem> items) {
+                final ObservableValue<Report> reportModel) {
             return new ObjectBinding<Duration>() {
                 @Override
                 protected Duration computeValue() {
                     Duration duration = Duration.ZERO;
-                    for (ListItem item : items) {
-                        duration = duration.plus(item.roundedDuration);
+                    for (ReportingItem item : reportModel.getValue().getReportingItems()) {
+                        duration = duration.plus(rounder.roundDuration(item.getDuration()));
                     }
                     return duration;
                 }
 
                 {
-                    bind(items);
+                    bind(reportModel);
                 }
 
 
@@ -419,43 +477,50 @@ public class ReportWindowBuilder {
         }
 
         private void setCommentColumnCellFactory() {
-        	columnForComment
-        			.setCellValueFactory(new TreeItemPropertyValueFactory<>(
-        					"comment"));
-            if (config.isGroupItems()) {
-                setItemGroupingCellFactory();
-            }
+//        	columnForComment
+//        			.setCellValueFactory(new TreeItemPropertyValueFactory<>(
+//        					"comment"));
+//            if (config.isGroupItems()) {
+//                setItemGroupingCellFactory();
+//            }
+        	columnForComment.setCellValueFactory((CellDataFeatures<ReportItem, String> p) -> {
+				TreeItem<ReportItem> value = p.getValue();
+				ReportItem value2 = value.getValue();
+				return new ReadOnlyStringWrapper(
+				value2.getComment() != null ? value2.getComment() : "");
+			});
         }
 
         private void setItemGroupingCellFactory() {
-            columnForComment.setCellFactory(new Callback<TreeTableColumn<ListItem,String>, TreeTableCell<ListItem,String>>() {
+            columnForComment.setCellFactory(new Callback<TreeTableColumn<ReportItem,String>, TreeTableCell<ReportItem,String>>() {
 				@Override
-				public TreeTableCell<ListItem, String> call(TreeTableColumn<ListItem, String> param) {
+				public TreeTableCell<ReportItem, String> call(TreeTableColumn<ReportItem, String> param) {
 					return new CommentTableCell();
 				}
 			});
+            
         }
 
         private void addSelectionToClipboardListenerToTableForReport() {
             treeForReport.getSelectionModel().getSelectedCells()
-                    .addListener(new ListChangeListener<TreeTablePosition<ListItem, ?>>()
+                    .addListener(new ListChangeListener<TreeTablePosition<ReportItem, ?>>()
             		{
 
 						@Override
 						public void onChanged(
-								javafx.collections.ListChangeListener.Change<? extends TreeTablePosition<ListItem, ?>> change) {
-							ObservableList<? extends TreeTablePosition<ListItem, ?>> selectedPositions = change
+								javafx.collections.ListChangeListener.Change<? extends TreeTablePosition<ReportItem, ?>> change) {
+							ObservableList<? extends TreeTablePosition<ReportItem, ?>> selectedPositions = change
                                     .getList();
                             setClipboardIfExactlyOneItemWasSelected(selectedPositions);
 						}
                     
                         private void setClipboardIfExactlyOneItemWasSelected(
-                                ObservableList<? extends TreeTablePosition<ListItem, ?>> selectedPositions) {
+                                ObservableList<? extends TreeTablePosition<ReportItem, ?>> selectedPositions) {
                             if (selectedPositions.size() == 1) {
-                                TreeTablePosition<ListItem, ?> position = selectedPositions
+                                TreeTablePosition<ReportItem, ?> position = selectedPositions
                                         .get(0);
-                                TreeItem<ListItem> treeItem = treeForReport.getTreeItem(position.getRow());
-                                ListItem listItem = treeItem.getValue();
+                                TreeItem<ReportItem> treeItem = treeForReport.getTreeItem(position.getRow());
+                                ReportItem listItem = treeItem.getValue();
                                 if (position.getTableColumn() == columnForRoundedDuration) {
                                     setClipBoard(listItem.getRoundedDuration());
                                 } else if (position.getTableColumn() == columnForDuration) {
@@ -490,13 +555,13 @@ public class ReportWindowBuilder {
 
         private void setDurationColumnCellFactoryToConvertDurationToString() {
             columnForDuration
-                    .setCellValueFactory(new TreeItemPropertyValueFactory<ListItem, String>(
+                    .setCellValueFactory(new TreeItemPropertyValueFactory<ReportItem, String>(
                             "duration") {
                         @Override
                         public ObservableValue<String> call(
-                                CellDataFeatures<ListItem, String> cellDataFeatures) {
-                            TreeItem<ListItem> treeItem = cellDataFeatures.getValue();
-							ListItem value = treeItem.getValue();
+                                CellDataFeatures<ReportItem, String> cellDataFeatures) {
+                            TreeItem<ReportItem> treeItem = cellDataFeatures.getValue();
+							ReportItem value = treeItem.getValue();
 							
 							String duration = "";
 							if (value != null)
@@ -512,13 +577,13 @@ public class ReportWindowBuilder {
 
         private void setRoundedDurationColumnCellFactoryToConvertDurationToString() {
             columnForRoundedDuration
-                    .setCellValueFactory(new TreeItemPropertyValueFactory<ListItem, String>(
+                    .setCellValueFactory(new TreeItemPropertyValueFactory<ReportItem, String>(
                             "roundedDuration") {
                         @Override
                         public ObservableValue<String> call(
-                                CellDataFeatures<ListItem, String> cellDataFeatures) {
-                            TreeItem<ListItem> treeItem = cellDataFeatures.getValue();
-							ListItem value = treeItem.getValue();
+                                CellDataFeatures<ReportItem, String> cellDataFeatures) {
+                            TreeItem<ReportItem> treeItem = cellDataFeatures.getValue();
+							ReportItem value = treeItem.getValue();
 							String duration = "";
 							if (value != null)
 							{
@@ -556,7 +621,7 @@ public class ReportWindowBuilder {
             return comboBox.getSelectionModel().selectedItemProperty();
         }
 
-        private class CommentTableCell extends TreeTableCell<ListItem, String> {
+        private class CommentTableCell extends TreeTableCell<ReportItem, String> {
             private FlowPane flowPane = new FlowPane();
 
             @Override
@@ -565,26 +630,28 @@ public class ReportWindowBuilder {
                 ObservableList<Node> flowPaneChildren = flowPane.getChildren();
                 flowPaneChildren.clear();
                 if (!empty) {
-                    final List<String> itemGroups = itemGrouper.getGroupsOf(item);
-                    for (int i = 0; i < itemGroups.size(); i++) {
-                        String partToShow;
-                        String part = itemGroups.get(i);
-                        if (i > 0) {
-                            partToShow = " " + part;
-                        } else {
-                            partToShow = part;
-                        }
-                        final Label partLabel = new Label(partToShow);
-                        addClickListener(itemGroups, partLabel, i);
-                        if (i < groupColors.length) {
-                            Color color = groupColors[i];
-                            Color selected = color.deriveColor(0, 1, 3, 1);
-                            BooleanBinding selectedRow = Bindings.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
-                            ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
-                            partLabel.textFillProperty().bind(colorObjectBinding);
-                        }
-                        flowPaneChildren.add(partLabel);
-                    }
+//                    final List<String> itemGroups = itemGrouper.getGroupsOf(item);
+//                    for (int i = 0; i < itemGroups.size(); i++) {
+//                        String partToShow;
+//                        String part = itemGroups.get(i);
+//                        if (i > 0) {
+//                            partToShow = " " + part;
+//                        } else {
+//                            partToShow = part;
+//                        }
+//                        final Label partLabel = new Label(partToShow);
+//                        addClickListener(itemGroups, partLabel, i);
+//                        if (i < groupColors.length) {
+//                            Color color = groupColors[i];
+//                            Color selected = color.deriveColor(0, 1, 3, 1);
+//                            BooleanBinding selectedRow = Bindings.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
+//                            ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
+//                            partLabel.textFillProperty().bind(colorObjectBinding);
+//                        }
+//                        flowPaneChildren.add(partLabel);
+//                    }
+                	final Label partLabel = new Label(item != null ? item : "abc");
+                	flowPaneChildren.add(partLabel);
                 }
                 setGraphic(flowPane);
             }
