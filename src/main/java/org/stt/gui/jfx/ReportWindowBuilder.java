@@ -5,6 +5,7 @@ import static org.stt.time.DateTimeHelper.FORMATTER_PERIOD_HHh_MMm_SSs;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,13 +19,16 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 import org.stt.config.ReportWindowConfig;
+import org.stt.gui.jfx.ReportWindowBuilder.ReportItem;
 import org.stt.gui.jfx.binding.ReportBinding;
 import org.stt.gui.jfx.binding.STTBindings;
 import org.stt.model.ReportingItem;
 import org.stt.persistence.ItemReaderProvider;
 import org.stt.query.TimeTrackingItemQueries;
 import org.stt.reporting.SummingReportGenerator.Report;
+import org.stt.text.ItemCategorizer.ItemCategory;
 import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
 import org.stt.time.DateTimeHelper;
 import org.stt.time.DurationRounder;
 
@@ -32,7 +36,8 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
-import javafx.beans.binding.*;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.binding.When;
@@ -46,8 +51,11 @@ import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.CheckBoxTreeItem;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
@@ -63,41 +71,19 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Shape;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.PeriodFormatter;
-import org.joda.time.format.PeriodFormatterBuilder;
-import org.stt.text.ItemCategorizer.ItemCategory;
-import org.stt.text.ItemGrouper;
-import org.stt.text.WorktimeCategorizer;
-import org.stt.config.ReportWindowConfig;
-import org.stt.gui.jfx.binding.ReportBinding;
-import org.stt.gui.jfx.binding.STTBindings;
-import org.stt.model.ReportingItem;
-import org.stt.persistence.ItemReaderProvider;
-import org.stt.query.TimeTrackingItemQueries;
-import org.stt.reporting.SummingReportGenerator.Report;
-import org.stt.time.DateTimeHelper;
-import org.stt.time.DurationRounder;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ResourceBundle;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.stt.time.DateTimeHelper.FORMATTER_PERIOD_HHh_MMm_SSs;
 
 public class ReportWindowBuilder {
     private final ItemReaderProvider readerProvider;
@@ -124,10 +110,10 @@ public class ReportWindowBuilder {
         this.itemGrouper = checkNotNull(itemGrouper);
         this.worktimeCategorizer = checkNotNull(worktimeCategorizer);
 
-        String breakColorString = config.getBreakTimeColor();
+        String breakColorString = this.config.getBreakTimeColor();
         breakTimeColor = Color.web(breakColorString);
         
-        List<String> colorStrings = config.getGroupColors();
+        List<String> colorStrings = this.config.getGroupColors();
         groupColors = new Color[colorStrings.size()];
         for (int i = 0; i < colorStrings.size(); i++) {
             groupColors[i] = Color.web(colorStrings.get(i));
@@ -171,25 +157,38 @@ public class ReportWindowBuilder {
         return new ReportBinding(selectedDateTime, nextDay, readerProvider);
     }
 
-    private TreeItem<ReportItem> createReportingTreeModel(ObservableValue<Report> reportModel) {
+    private ObjectBinding<TreeItem<ReportItem>> createReportingTreeModel(ObservableValue<Report> reportModel) {
     	
-    	ReportItem rootItem = new ReportItem();
-    	
-    	for (ReportingItem item : reportModel.getValue().getReportingItems())
-    	{
-    		List<String> groups = itemGrouper.getGroupsOf(item.getComment());
-    		
-    		ReportItem reportItem = rootItem;
-    		for (int i = 0; i < groups.size() -1; i++) {
-				String group = groups.get(i);
-				reportItem = reportItem.getOrCreateChild(group);
+    	ObjectBinding<TreeItem<ReportItem>> objectBinding = new ObjectBinding<TreeItem<ReportItem>>() {
+
+			@Override
+			protected TreeItem<ReportItem> computeValue() {
+		    	ReportItem rootItem = new ReportItem();
+		    	
+		    	for (ReportingItem item : reportModel.getValue().getReportingItems())
+		    	{
+		    		List<String> groups = itemGrouper.getGroupsOf(item.getComment());
+		    		
+		    		ReportItem reportItem = rootItem;
+		    		for (int i = 0; i < groups.size() -1; i++) {
+						String group = groups.get(i);
+						reportItem = reportItem.getOrCreateChild(group);
+					}
+		    		
+		    		reportItem.addLeaf(new ReportItem(item.getComment(), item.getDuration(), rounder.roundDuration(item.getDuration())));
+		    		
+		    	}
+		    	
+				return new TreeItemExtension(rootItem);
+			}
+			
+			{
+				bind(reportModel);
 			}
     		
-    		reportItem.addLeaf(new ReportItem(item.getComment(), item.getDuration(), rounder.roundDuration(item.getDuration())));
-    		
-    	}
+    	};
     	
-		return new TreeItemExtension(rootItem);
+    	return objectBinding;
 	}
 
 	private final class TreeItemExtension extends TreeItem<ReportItem> {
@@ -312,6 +311,10 @@ public class ReportWindowBuilder {
         private TreeTableColumn<ReportItem, String> columnForDuration;
         @FXML
         private TreeTableColumn<ReportItem, String> columnForComment;
+        
+        @FXML
+        private TreeTableColumn<ReportItem, Boolean> columnForLogged;
+        
         @FXML
         private TreeTableView<ReportItem> treeForReport;
         @FXML
@@ -358,18 +361,19 @@ public class ReportWindowBuilder {
             startOfReport.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
-                    setClipboard(startBinding.get());
+                    setCommentToClipboard(startBinding.get());
                 }
             });
             endOfReport.setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
-                    setClipboard(endBinding.get());
+                    setCommentToClipboard(endBinding.get());
                 }
             });
 
-            TreeItem<ReportItem> root = createReportingTreeModel(reportModel);
-			treeForReport.setRoot(root);
+            ObjectBinding<TreeItem<ReportItem>> root = createReportingTreeModel(reportModel);
+			//treeForReport.setRoot(root);
+			treeForReport.rootProperty().bind(root);
 			treeForReport.getSelectionModel().setCellSelectionEnabled(false);
 			
 			//treeForReport.setShowRoot(true);
@@ -385,6 +389,7 @@ public class ReportWindowBuilder {
 
             setRoundedDurationColumnCellFactoryToConvertDurationToString();
             setDurationColumnCellFactoryToConvertDurationToString();
+            setLoggedColumnCellFactory();
             setCommentColumnCellFactory();
 
             presetSortingToAscendingCommentColumn();
@@ -396,10 +401,13 @@ public class ReportWindowBuilder {
             columnForComment.prefWidthProperty().bind(
                     treeForReport.widthProperty().subtract(
                             columnForRoundedDuration.widthProperty().add(
-                                    columnForDuration.widthProperty())));
+                                    columnForDuration.widthProperty().add(columnForLogged.widthProperty()).add(10))));
+            columnForComment.setMinWidth(300);
         }
 
   
+
+
 
 		private ObservableValue<Duration> createBindingForPauseSum(final ObservableValue<Report> reportModel) {
         	return new ObjectBinding<Duration>() {
@@ -510,18 +518,12 @@ public class ReportWindowBuilder {
         }
 
         private void setCommentColumnCellFactory() {
-//        	columnForComment
-//        			.setCellValueFactory(new TreeItemPropertyValueFactory<>(
-//        					"comment"));
-//            if (config.isGroupItems()) {
-//                setItemGroupingCellFactory();
-//            }
-        	columnForComment.setCellValueFactory((CellDataFeatures<ReportItem, String> p) -> {
-				TreeItem<ReportItem> value = p.getValue();
-				ReportItem value2 = value.getValue();
-				return new ReadOnlyStringWrapper(
-				value2.getComment() != null ? value2.getComment() : "");
-			});
+        	columnForComment
+        			.setCellValueFactory(new TreeItemPropertyValueFactory<>(
+        					"comment"));
+            if (config.isGroupItems()) {
+                setItemGroupingCellFactory();
+            }
         }
 
         private void setItemGroupingCellFactory() {
@@ -555,11 +557,11 @@ public class ReportWindowBuilder {
                                 TreeItem<ReportItem> treeItem = treeForReport.getTreeItem(position.getRow());
                                 ReportItem listItem = treeItem.getValue();
                                 if (position.getTableColumn() == columnForRoundedDuration) {
-                                    setClipBoard(listItem.getRoundedDuration());
+                                    setDurationToClipboard(listItem.getRoundedDuration());
                                 } else if (position.getTableColumn() == columnForDuration) {
-                                    setClipBoard(listItem.getDuration());
+                                    setDurationToClipboard(listItem.getDuration());
                                 } else if (position.getTableColumn() == columnForComment) {
-                                    setClipboard(listItem.getComment());
+                                    setCommentToClipboard(listItem.getComment());
                                 }
                             }
                         }
@@ -567,18 +569,18 @@ public class ReportWindowBuilder {
                     });
         }
 
-        private void setClipboard(String comment) {
+        private void setCommentToClipboard(String comment) {
             ClipboardContent content = new ClipboardContent();
             content.putString(comment);
             setClipboardContentTo(content);
         }
 
-        private void setClipBoard(Duration duration) {
+        private void setDurationToClipboard(Duration duration) {
             PeriodFormatter formatter = new PeriodFormatterBuilder()
                     .printZeroIfSupported().minimumPrintedDigits(2)
                     .appendHours().appendSeparator(":").appendMinutes()
                     .toFormatter();
-            setClipboard(formatter.print(duration.toPeriod()));
+            setCommentToClipboard(formatter.print(duration.toPeriod()));
         }
 
         private void setClipboardContentTo(ClipboardContent content) {
@@ -607,6 +609,10 @@ public class ReportWindowBuilder {
                         }
                     });
         }
+        
+		private void setLoggedColumnCellFactory() {
+			// TODO
+		}
 
         private void setRoundedDurationColumnCellFactoryToConvertDurationToString() {
             columnForRoundedDuration
@@ -655,11 +661,32 @@ public class ReportWindowBuilder {
         }
 
         private class CommentTableCell extends TreeTableCell<ReportItem, String> {
-            private FlowPane flowPane = new FlowPane();
+            private TextFlow flowPane = new TextFlow() {
+
+            	// Bugfix for wrong behavior when adding Text to TextFlow
+            	// see JDK-8124129
+				@Override
+				protected double computePrefHeight(double width) {
+					if (width < USE_COMPUTED_SIZE)
+					{
+						CommentTableCell parent = (CommentTableCell) getParent();
+						
+						width = parent.computePrefWidth(-1);
+					    Insets insets = parent.getInsets();
+					    
+					    width -= insets.getLeft() + insets.getRight();
+					}
+					
+					return super.computePrefHeight(width);
+				}
+
+            	
+            };
 
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
+                System.out.println();
                 ObservableList<Node> flowPaneChildren = flowPane.getChildren();
                 flowPaneChildren.clear();
 				if (!empty) {
@@ -675,6 +702,7 @@ public class ReportWindowBuilder {
 					}
                    
                 }
+						
                 setGraphic(flowPane);
             }
 
@@ -695,6 +723,9 @@ public class ReportWindowBuilder {
 				int index = 0;
 				int lastIndex = 0;
 				
+				BooleanBinding selectedRow = Bindings
+						.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
+				
 				for (int i = 0; i < itemGroups.size(); i++) {
 					String partToShow;
 					String part = itemGroups.get(i);
@@ -705,26 +736,26 @@ public class ReportWindowBuilder {
 					partToShow = item.substring(lastIndex, index);
 					lastIndex = index;
 					
-					final Label partLabel = new Label(partToShow);
+					final Text partLabel = new Text(partToShow);
+					//partLabel.setStyle("-fx-border-color: black");
 					addClickListener(itemGroups, partLabel, i);
 					if (i < groupColors.length) {
 						Color color = groupColors[i];
 						Color selected = color.deriveColor(0, 1, 3, 1);
-						BooleanBinding selectedRow = Bindings
-								.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
+
 						ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
-						partLabel.textFillProperty().bind(colorObjectBinding);
+						partLabel.fillProperty().bind(colorObjectBinding);
 					}
 					flowPaneChildren.add(partLabel);
 				}
 			}
 
-            private void addClickListener(final List<String> itemGroups, Label partLabel, final int fromIndex) {
+            private void addClickListener(final List<String> itemGroups, Node partLabel, final int fromIndex) {
                 partLabel.setOnMouseClicked(new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
                         String commentRemainder = Joiner.on(" ").join(itemGroups.subList(fromIndex, itemGroups.size()));
-                        setClipboard(commentRemainder);
+                        setCommentToClipboard(commentRemainder);
                     }
                 });
             }
