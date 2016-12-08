@@ -45,6 +45,8 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import org.joda.time.DateTime;
 import org.stt.text.ExpansionProvider;
+import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
 import org.stt.Configuration;
 import org.stt.command.Command;
 import org.stt.command.CommandParser;
@@ -117,6 +119,9 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     private ExecutorService executorService;
     private ObservableList<AdditionalPaneBuilder> additionals = FXCollections.observableArrayList();
 	private Configuration configuration;
+	private ItemGrouper itemGrouper;
+	private WorktimeCategorizer worktimeCategorizer;
+	private TimeTrackingItemListConfig timeTrackingItemListConfig;
 
     @Inject
     STTApplication(STTOptionDialogs STTOptionDialogs,
@@ -131,9 +136,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                    ItemAndDateValidator validator,
                    TimeTrackingItemQueries searcher,
                    AchievementService achievementService,
-                   ExecutorService executorService) {
-        this.configuration = checkNotNull(configuration);
-		checkNotNull(timeTrackingItemListConfig);
+                   ExecutorService executorService,
+                   ItemGrouper itemGrouper,
+                   WorktimeCategorizer worktimeCategorizer) {
+		this.configuration = checkNotNull(configuration);
+		this.timeTrackingItemListConfig = checkNotNull(timeTrackingItemListConfig);
         this.executorService = checkNotNull(executorService);
         this.achievementService = checkNotNull(achievementService);
         this.searcher = checkNotNull(searcher);
@@ -144,6 +151,8 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         this.reportWindowBuilder = checkNotNull(reportWindowBuilder);
         this.commandParser = checkNotNull(commandParser);
         this.localization = checkNotNull(resourceBundle);
+        this.itemGrouper = checkNotNull(itemGrouper);
+		this.worktimeCategorizer = checkNotNull(worktimeCategorizer);
         autoCompletionPopup = checkNotNull(commandTextConfig).isAutoCompletionPopup();
 
         eventBus.register(this);
@@ -205,9 +214,13 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     private List<String> getSuggestedContinuations() {
         String textToExpand = getTextFromStartToCaret();
         List<String> expansions = new ArrayList<>();
-        for (ExpansionProvider provider : expansionProviders)
+        
+        if (textToExpand.length() >= 2)
         {
-        	expansions.addAll(provider.getPossibleExpansions(textToExpand));
+	        for (ExpansionProvider provider : expansionProviders)
+	        {
+	        	expansions.addAll(provider.getPossibleExpansions(textToExpand));
+	        }
         }
         
         return expansions;
@@ -469,7 +482,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                     }
                 }
             });
-            popup.show(stage);
+            //popup.show(stage);
             new PopupAtCaretPlacer(commandText, popup);
         }
 
@@ -559,7 +572,10 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                 public boolean filter(TimeTrackingItem item) {
                     return firstItemOfDayBinding.contains(item);
                 }
-            }, localization));
+            }, localization,
+               itemGrouper, 
+               worktimeCategorizer, 
+               timeTrackingItemListConfig));
         }
 
         private void bindCaretPosition() {

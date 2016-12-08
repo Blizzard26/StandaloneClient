@@ -11,6 +11,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.stt.text.ExpansionProvider;
 import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
 import org.stt.Configuration;
 import org.stt.command.Command;
 import org.stt.command.CommandParser;
@@ -65,6 +66,9 @@ public class STTApplicationTest {
     private AchievementService achievementService;
     @Mock
     private Configuration configuration;
+    
+    @Mock
+	private WorktimeCategorizer worktimeCategorizer;
 
     @Before
     public void setup() {
@@ -74,10 +78,16 @@ public class STTApplicationTest {
         given(commandParser.endCurrentItemCommand(any(DateTime.class))).willReturn(Optional.<Command>absent());
         given(commandParser.deleteCommandFor(any(TimeTrackingItem.class))).willReturn(NothingCommand.INSTANCE);
 
-        Set<ExpansionProvider> expansionProviders = new HashSet<>(Collections.singleton(expansionProvider));
+        given(timeTrackingItemQueries.getPreviousTimeTrackingItem(any(TimeTrackingItem.class))).willReturn(Optional.absent());
+        given(timeTrackingItemQueries.getNextTimeTrackingTime(any(TimeTrackingItem.class))).willReturn(Optional.absent());
         
-        sut = new STTApplication(new STTOptionDialogs(resourceBundle), configuration, new EventBus(), commandParser, reportWindowBuilder,
-                expansionProviders, resourceBundle, new TimeTrackingItemListConfig(), new CommandTextConfig(), itemValidator, timeTrackingItemQueries, achievementService, executorService);
+
+        Set<ExpansionProvider> expansionProviders = new HashSet<>(Collections.singleton(expansionProvider));
+        TimeTrackingItemListConfig timeTrackingItemListConfig = new TimeTrackingItemListConfig();
+        timeTrackingItemListConfig.applyDefaults();
+        
+		sut = new STTApplication(new STTOptionDialogs(resourceBundle), configuration, new EventBus(), commandParser, reportWindowBuilder,
+                expansionProviders, resourceBundle, timeTrackingItemListConfig, new CommandTextConfig(), itemValidator, timeTrackingItemQueries, achievementService, executorService, grouper, worktimeCategorizer);
         sut.viewAdapter = sut.new ViewAdapter(null) {
 
             @Override

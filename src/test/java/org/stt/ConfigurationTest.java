@@ -1,5 +1,6 @@
 package org.stt;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,13 +24,28 @@ public class ConfigurationTest {
 
 	private File currentTempFolder;
 
+	// Mockito can't mock method called by the constructor, hence we need this mock-class
+	private static class ConfigurationMock extends Configuration
+	{
+		private File tempFolder;
+
+		public ConfigurationMock(File tempFolder) {
+			this.tempFolder = tempFolder;
+		}
+
+		@Override
+		public File determineBaseDir() {
+			return tempFolder;
+		}
+		
+	}
+	
 	@Before
 	public void setUp() throws IOException {
-		sut = Mockito.spy(new Configuration());
 		currentTempFolder = tempFolder.newFolder();
-		when(sut.determineBaseDir()).thenReturn(currentTempFolder);
+		sut = new ConfigurationMock(currentTempFolder);
 	}
-
+	
 	@Test
 	public void shouldBeAbleToProvideSTTFile() {
 		// GIVEN

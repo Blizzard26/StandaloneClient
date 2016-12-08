@@ -1,11 +1,14 @@
 package org.stt.config;
 
+import org.stt.Configuration;
 import org.stt.Service;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.DumperOptions.FlowStyle;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.introspector.PropertyUtils;
+
+import com.google.inject.Inject;
 
 import java.io.*;
 import java.util.logging.Level;
@@ -20,31 +23,11 @@ public class YamlConfigService implements Service {
 
     private static final Logger LOG = Logger.getLogger(YamlConfigService.class
             .getName());
-	private static final String STT_DIRECTORY = ".stt";
     private final File sttYaml;
     private BaseConfig config;
 
-    public YamlConfigService() {
-        sttYaml = new File(determineBaseDir(), "stt.yaml");
-    }
-
-    @SuppressWarnings("PMD.CollapsibleIfStatements")
-    private static File determineBaseDir() {
-        String envHOMEVariable = System.getenv("HOME");
-        if (envHOMEVariable != null) {
-            File homeDirectory = new File(envHOMEVariable);
-            if (homeDirectory.exists()) {
-                return homeDirectory;
-            }
-        }
-        File homeDir = new File(System.getProperty("user.home"));
-        File baseDir = new File(homeDir, STT_DIRECTORY);
-        
-    	if (!baseDir.exists())
-    		if (!baseDir.mkdir())
-                throw new RuntimeException("Cannot create stt dir");
-        
-		return baseDir;
+    @Inject public YamlConfigService(Configuration mainConfig) {
+        sttYaml = new File(mainConfig.determineBaseDir(), "stt.yaml");
     }
 
     private void writeConfig() {

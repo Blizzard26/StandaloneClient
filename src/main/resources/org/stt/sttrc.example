@@ -49,7 +49,14 @@
 #backupRetention=0
 
 # Jira Settings
-#jiraURL="https://jira.atlassian.com/"
+# URL of Jira Server
+#jiraURL=https://jira.atlassian.com/
+# User name for authentication; if no user name is given anonymous authentication will be used
 #jiraUserName=
+# User password for authentication
 #jiraPassword=
  
+ 
+# Split Item Grouper setting
+# Regular expression used for splitting items into groups
+#splitItemGrouperRegularExpression="\\s(:|\\||-)\\s"

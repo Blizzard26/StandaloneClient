@@ -3,6 +3,7 @@ package org.stt.text;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+import org.stt.Configuration;
 import org.stt.config.YamlConfigService;
 import org.stt.persistence.ItemReader;
 
@@ -18,12 +19,12 @@ public class TextModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ItemGrouper.class).to(CommonPrefixGrouper.class);
-        bind(ExpansionProvider.class).to(CommonPrefixGrouper.class);
+        bind(ItemGrouper.class).to(SplitItemGrouper.class);
+        //bind(ExpansionProvider.class).to(SplitItemGrouper.class);
         bind(ItemCategorizer.class).to(WorktimeCategorizer.class);
 
     	Multibinder<ExpansionProvider> expansionProviderBinder = Multibinder.newSetBinder(binder(), ExpansionProvider.class);
-    	expansionProviderBinder.addBinding().to(CommonPrefixGrouper.class);
+    	expansionProviderBinder.addBinding().to(SplitItemGrouper.class);
     	expansionProviderBinder.addBinding().to(JiraExpansionProvider.class);
     }
 
@@ -41,6 +42,19 @@ public class TextModule extends AbstractModule {
         }
 
         return commonPrefixGrouper;
+    }
+    
+    @Provides
+    SplitItemGrouper provideSplitItemGrouper(ItemReader reader, Configuration configuration) {
+    	SplitItemGrouper splitItemGrouper = new SplitItemGrouper(configuration);
+    	try (ItemReader itemReader = reader)
+    	{
+    		splitItemGrouper.scanForGroups(itemReader);
+    	} catch (IOException e) {
+    		throw new RuntimeException(e);
+    	}
+    	
+    	return splitItemGrouper;
     }
 
 }

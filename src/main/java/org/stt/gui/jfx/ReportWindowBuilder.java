@@ -32,7 +32,7 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
-import javafx.beans.binding.BooleanBinding;
+import javafx.beans.binding.*;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.binding.When;
@@ -71,6 +71,33 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
+import org.stt.text.ItemCategorizer.ItemCategory;
+import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
+import org.stt.config.ReportWindowConfig;
+import org.stt.gui.jfx.binding.ReportBinding;
+import org.stt.gui.jfx.binding.STTBindings;
+import org.stt.model.ReportingItem;
+import org.stt.persistence.ItemReaderProvider;
+import org.stt.query.TimeTrackingItemQueries;
+import org.stt.reporting.SummingReportGenerator.Report;
+import org.stt.time.DateTimeHelper;
+import org.stt.time.DurationRounder;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.ResourceBundle;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.stt.time.DateTimeHelper.FORMATTER_PERIOD_HHh_MMm_SSs;
 
 public class ReportWindowBuilder {
     private final ItemReaderProvider readerProvider;
@@ -79,21 +106,27 @@ public class ReportWindowBuilder {
     private final Provider<Stage> stageProvider;
     private final DurationRounder rounder;
     private final ItemGrouper itemGrouper;
+    private final WorktimeCategorizer worktimeCategorizer;
     private final Color[] groupColors;
     private ReportWindowConfig config;
+	private Color breakTimeColor;
 
 
     @Inject
     ReportWindowBuilder(Provider<Stage> stageProvider,
                                ItemReaderProvider readerProvider, TimeTrackingItemQueries searcher,
-                               DurationRounder rounder, ItemGrouper itemGrouper, ReportWindowConfig config) {
+                               DurationRounder rounder, ItemGrouper itemGrouper, WorktimeCategorizer worktimeCategorizer, ReportWindowConfig config) {
         this.config = checkNotNull(config);
         this.stageProvider = checkNotNull(stageProvider);
         this.timeTrackingItemQueries = checkNotNull(searcher);
         this.readerProvider = checkNotNull(readerProvider);
         this.rounder = checkNotNull(rounder);
         this.itemGrouper = checkNotNull(itemGrouper);
+        this.worktimeCategorizer = checkNotNull(worktimeCategorizer);
 
+        String breakColorString = config.getBreakTimeColor();
+        breakTimeColor = Color.web(breakColorString);
+        
         List<String> colorStrings = config.getGroupColors();
         groupColors = new Color[colorStrings.size()];
         for (int i = 0; i < colorStrings.size(); i++) {
@@ -629,32 +662,62 @@ public class ReportWindowBuilder {
                 super.updateItem(item, empty);
                 ObservableList<Node> flowPaneChildren = flowPane.getChildren();
                 flowPaneChildren.clear();
-                if (!empty) {
-//                    final List<String> itemGroups = itemGrouper.getGroupsOf(item);
-//                    for (int i = 0; i < itemGroups.size(); i++) {
-//                        String partToShow;
-//                        String part = itemGroups.get(i);
-//                        if (i > 0) {
-//                            partToShow = " " + part;
-//                        } else {
-//                            partToShow = part;
-//                        }
-//                        final Label partLabel = new Label(partToShow);
-//                        addClickListener(itemGroups, partLabel, i);
-//                        if (i < groupColors.length) {
-//                            Color color = groupColors[i];
-//                            Color selected = color.deriveColor(0, 1, 3, 1);
-//                            BooleanBinding selectedRow = Bindings.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
-//                            ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
-//                            partLabel.textFillProperty().bind(colorObjectBinding);
-//                        }
-//                        flowPaneChildren.add(partLabel);
-//                    }
-                	final Label partLabel = new Label(item != null ? item : "abc");
-                	flowPaneChildren.add(partLabel);
+				if (!empty) {
+					ItemCategory category = worktimeCategorizer.getCategory(item);
+					switch (category) {
+					case BREAK:
+						colorizeBreakTime(item, flowPaneChildren);
+						break;
+					case WORKTIME:
+					default:
+						colorizeGroups(item, flowPaneChildren);
+						break;
+					}
+                   
                 }
                 setGraphic(flowPane);
             }
+
+			private void colorizeBreakTime(String item, ObservableList<Node> flowPaneChildren) {
+				final Label partLabel = new Label(item);
+				addClickListener(Arrays.asList(item), partLabel, 0);
+				Color color = breakTimeColor;
+				Color selected = color.deriveColor(0, 1, 3, 1);
+				BooleanBinding selectedRow = Bindings.equal(treeForReport.getSelectionModel().selectedIndexProperty(),
+						indexProperty());
+				ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
+				partLabel.textFillProperty().bind(colorObjectBinding);
+				flowPaneChildren.add(partLabel);
+			}
+
+			private void colorizeGroups(String item, ObservableList<Node> flowPaneChildren) {
+				final List<String> itemGroups = itemGrouper.getGroupsOf(item);
+				int index = 0;
+				int lastIndex = 0;
+				
+				for (int i = 0; i < itemGroups.size(); i++) {
+					String partToShow;
+					String part = itemGroups.get(i);
+					index = item.indexOf(part, lastIndex) + part.length();
+					if (index == -1)
+						index = item.length();
+					
+					partToShow = item.substring(lastIndex, index);
+					lastIndex = index;
+					
+					final Label partLabel = new Label(partToShow);
+					addClickListener(itemGroups, partLabel, i);
+					if (i < groupColors.length) {
+						Color color = groupColors[i];
+						Color selected = color.deriveColor(0, 1, 3, 1);
+						BooleanBinding selectedRow = Bindings
+								.equal(treeForReport.getSelectionModel().selectedIndexProperty(), indexProperty());
+						ObjectBinding<Color> colorObjectBinding = new When(selectedRow).then(selected).otherwise(color);
+						partLabel.textFillProperty().bind(colorObjectBinding);
+					}
+					flowPaneChildren.add(partLabel);
+				}
+			}
 
             private void addClickListener(final List<String> itemGroups, Label partLabel, final int fromIndex) {
                 partLabel.setOnMouseClicked(new EventHandler<MouseEvent>() {

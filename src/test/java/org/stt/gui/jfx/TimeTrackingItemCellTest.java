@@ -11,13 +11,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.stt.config.TimeTrackingItemListConfig;
 import org.stt.gui.jfx.TimeTrackingItemCell.Builder;
 import org.stt.gui.jfx.TimeTrackingItemCell.ContinueActionHandler;
 import org.stt.gui.jfx.TimeTrackingItemCell.DeleteActionHandler;
 import org.stt.gui.jfx.TimeTrackingItemCell.EditActionHandler;
 import org.stt.model.TimeTrackingItem;
 import org.stt.model.TimeTrackingItemFilter;
+import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
 
+import java.util.Arrays;
 import java.util.ResourceBundle;
 
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -25,6 +29,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import org.stt.text.ItemCategorizer.ItemCategory;
 
 public class TimeTrackingItemCellTest {
 
@@ -47,11 +57,26 @@ public class TimeTrackingItemCellTest {
 	private Image runningImage;
 	@Mock
 	private TimeTrackingItemFilter firstItemOfTheDayFilter;
+	
+	@Mock
+	private ItemGrouper itemGrouper;
+	
+	@Mock
+	private WorktimeCategorizer workitemCategorizer;
+	
+	@Mock
+	private TimeTrackingItemListConfig timeTrackingItemListConfig;
 
 	@Before
 	public void setup() throws Throwable {
 		new JFXPanel();
 		MockitoAnnotations.initMocks(this);
+		
+		given(timeTrackingItemListConfig.getBreakTimeColor()).willReturn("RED");
+		given(timeTrackingItemListConfig.getGroupColors()).willReturn(Arrays.asList("BLUE"));
+		
+		given(workitemCategorizer.getCategory(anyString())).willReturn(ItemCategory.WORKTIME);
+		
 		Builder builder = new TimeTrackingItemCell.Builder();
 		ResourceBundle resourceBundle = ResourceBundle
 				.getBundle("org.stt.gui.Application");
@@ -62,7 +87,10 @@ public class TimeTrackingItemCellTest {
 				.editImage(imageForEdit).runningImage(runningImage)
 				.fromToImage(imageFromTo)
 				.firstItemOfTheDayFilter(firstItemOfTheDayFilter)
-				.resourceBundle(resourceBundle);
+				.resourceBundle(resourceBundle)
+				.itemGrouper(itemGrouper)
+				.workitemCategorizer(workitemCategorizer)
+				.timeTrackingItemListConfig(timeTrackingItemListConfig);
 
 		sut = new TimeTrackingItemCell(builder) {
 

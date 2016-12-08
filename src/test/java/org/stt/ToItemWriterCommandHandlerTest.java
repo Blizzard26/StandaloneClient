@@ -286,6 +286,61 @@ public class ToItemWriterCommandHandlerTest {
         TimeTrackingItem item = retrieveWrittenTimeTrackingItem();
         assertThat(item.getEnd(), not(Optional.absent()));
     }
+    
+    @Test
+    public void shouldEndCurrentAndResumeLastItemOnFINandRESUMECommand() throws IOException {
+    	// GIVEN
+		
+    	DateTime previousStart = DateTime.now().withTimeAtStartOfDay().withHourOfDay(12);
+		DateTime previousEnd = DateTime.now().withTimeAtStartOfDay().withHourOfDay(13);
+		
+    	TimeTrackingItem previousItem = new TimeTrackingItem("previous Item", previousStart, previousEnd);
+    	TimeTrackingItem unfinishedItem = new TimeTrackingItem("unfinished Item", previousEnd);
+    	givenCurrentTimeTrackingItem(previousItem);
+    	givenCurrentTimeTrackingItem(unfinishedItem);
+    	
+    	// WHEN
+    	Optional<TimeTrackingItem> optionalItem = sut.executeCommand("fin and resume at 14:00").getItem();
+    	
+    	// THEN
+    	Optional<TimeTrackingItem> actual = timeTrackingItemQueries.getLatestTimeTrackingitem();
+    	assertThat(optionalItem, is(actual));
+    	assertThat(actual.isPresent(), is(true));
+    	TimeTrackingItem item = actual.get();
+    	assertThat(item.getComment(), is(previousItem.getComment()));
+    	assertThat(item.getStart(), is(DateTime.now().withTimeAtStartOfDay().withHourOfDay(14)));
+    	assertThat(item.getEnd(), is(Optional.absent()));
+    	
+
+    	Collection<TimeTrackingItem> allItems = timeTrackingItemQueries.queryAllItems();
+    	assertThat(allItems.size(), is(3));
+    }
+    
+    @Test
+    public void shouldNotResumeOnFinishedItemOnFINandRESUMECommand() 
+    {
+    	// GIVEN
+		
+    	DateTime previousStart = DateTime.now().withTimeAtStartOfDay().withHourOfDay(12);
+		DateTime previousEnd = DateTime.now().withTimeAtStartOfDay().withHourOfDay(13);
+		DateTime currentEnd = DateTime.now().withTimeAtStartOfDay().withHourOfDay(14);
+		
+    	TimeTrackingItem previousItem = new TimeTrackingItem("previous Item", previousStart, previousEnd);
+    	TimeTrackingItem finishedItem = new TimeTrackingItem("finished Item", previousEnd, currentEnd);
+    	givenCurrentTimeTrackingItem(previousItem);
+    	givenCurrentTimeTrackingItem(finishedItem);
+    	
+    	// WHEN
+    	Optional<TimeTrackingItem> optionalItem = sut.executeCommand("fin and resume at 15:00").getItem();
+    	
+    	// THEN
+    	assertThat(optionalItem, is(Optional.absent()));
+    	Optional<TimeTrackingItem> actual = timeTrackingItemQueries.getLatestTimeTrackingitem();
+    	assertThat(actual, is(Optional.of(finishedItem)));
+    	
+    	Collection<TimeTrackingItem> allItems = timeTrackingItemQueries.queryAllItems();
+    	assertThat(allItems.size(), is(2));
+    }
 
     private TimeTrackingItem createUnfinishedItem() {
         return new TimeTrackingItem(null, DateTime.now().minusMillis(1));
