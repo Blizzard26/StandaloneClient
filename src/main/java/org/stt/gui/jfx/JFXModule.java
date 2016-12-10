@@ -1,5 +1,7 @@
 package org.stt.gui.jfx;
 
+import java.util.ResourceBundle;
+
 import org.stt.command.CommandParser;
 import org.stt.config.YamlConfigService;
 import org.stt.persistence.ItemReaderProvider;
@@ -24,10 +26,10 @@ public class JFXModule extends AbstractModule {
 
     @Provides
     private ReportWindowBuilder createReportWindowBuilder(TimeTrackingItemQueries timeTrackingItemQueries, ItemReaderProvider itemReaderProvider,
-                                                          DurationRounder durationRounder, ItemGrouper itemGrouper, Provider<Stage> stageProvider,
+                                                          DurationRounder durationRounder, ItemGrouper itemGrouper, Provider<Stage> stageProvider, ResourceBundle resourceBundle,
                                                           WorktimeCategorizer worktimeCategorizer, YamlConfigService yamlConfig) {
         return new ReportWindowBuilder(
-                stageProvider, itemReaderProvider,
+                stageProvider, resourceBundle, itemReaderProvider,
                 timeTrackingItemQueries, durationRounder, itemGrouper, worktimeCategorizer, yamlConfig.getConfig().getReportWindowConfig());
     }
     

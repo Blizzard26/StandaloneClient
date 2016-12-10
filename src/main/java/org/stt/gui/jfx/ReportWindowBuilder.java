@@ -94,15 +94,18 @@ public class ReportWindowBuilder {
     private final Color[] groupColors;
     private ReportWindowConfig config;
 	private Color breakTimeColor;
+	private final ResourceBundle localization;
 
 
     @Inject
     ReportWindowBuilder(Provider<Stage> stageProvider,
+    					ResourceBundle resourceBundle,
                                ItemReaderProvider readerProvider, TimeTrackingItemQueries searcher,
                                DurationRounder rounder, ItemGrouper itemGrouper,
                                WorktimeCategorizer worktimeCategorizer, ReportWindowConfig config) {
         this.config = checkNotNull(config);
         this.stageProvider = checkNotNull(stageProvider);
+        this.localization = checkNotNull(resourceBundle);
         this.timeTrackingItemQueries = checkNotNull(searcher);
         this.readerProvider = checkNotNull(readerProvider);
         this.rounder = checkNotNull(rounder);
@@ -125,8 +128,6 @@ public class ReportWindowBuilder {
 
 			ReportWindowController controller = new ReportWindowController(stage);
 
-			ResourceBundle localization = ResourceBundle
-			        .getBundle("org.stt.gui.Application");
 			FXMLLoader loader = new FXMLLoader(getClass().getResource(
 			        "/org/stt/gui/jfx/ReportWindow.fxml"), localization);
 			loader.setController(controller);
@@ -584,6 +585,7 @@ public class ReportWindowBuilder {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initStyle(StageStyle.UTILITY);
             stage.setScene(scene);
+            stage.setTitle(localization.getString("reportwindow.title"));
 
             scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
 
