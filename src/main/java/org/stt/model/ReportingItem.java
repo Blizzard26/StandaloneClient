@@ -1,14 +1,18 @@
 package org.stt.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
 public class ReportingItem {
 
-	private final Duration duration;
+	private Duration duration = Duration.ZERO;
 	private final String comment;
+	private List<TimeTrackingItem> items = new ArrayList<>();
 
-	public ReportingItem(Duration duration, String comment) {
-		this.duration = duration;
+	public ReportingItem(String comment) {
 		this.comment = comment;
 	}
 
@@ -62,5 +66,16 @@ public class ReportingItem {
 			return false;
 		}
 		return true;
+	}
+
+	public void addTimeTrackingItem(TimeTrackingItem item) {
+		DateTime now = DateTime.now();
+		DateTime start = item.getStart();
+		DateTime end = item.getEnd().or(now);
+		Duration itemDuration = new Duration(start, end);
+		
+		this.duration = this.duration.plus(itemDuration);
+		
+		this.items.add(item);
 	}
 }
