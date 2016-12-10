@@ -238,6 +238,7 @@ public class ReportWindowBuilder {
         }
 
         public void addLeaf(ReportItem reportItem) {
+        	reportItem.parent = this;
 			leafs.add(reportItem);
 			addSubItemToDuration(reportItem);
 		}
@@ -261,6 +262,7 @@ public class ReportWindowBuilder {
 			if (item == null)
 			{
 				item = new ReportItem(group, Duration.ZERO, Duration.ZERO, false);
+				item.parent = this;
 				children.put(group, item);
 			}
 			return item;
