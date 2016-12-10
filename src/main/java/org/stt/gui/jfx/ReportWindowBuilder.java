@@ -42,6 +42,7 @@ import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.binding.When;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
@@ -65,6 +66,7 @@ import javafx.scene.control.TreeTableColumn.CellDataFeatures;
 import javafx.scene.control.TreeTableColumn.SortType;
 import javafx.scene.control.TreeTablePosition;
 import javafx.scene.control.TreeTableView;
+import javafx.scene.control.cell.CheckBoxTreeTableCell;
 import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -175,7 +177,8 @@ public class ReportWindowBuilder {
 						reportItem = reportItem.getOrCreateChild(group);
 					}
 		    		
-		    		reportItem.addLeaf(new ReportItem(item.getComment(), item.getDuration(), rounder.roundDuration(item.getDuration())));
+		    		reportItem.addLeaf(new ReportItem(item.getComment(), item.getDuration(), 
+		    				rounder.roundDuration(item.getDuration()), false));
 		    		
 		    	}
 		    	
@@ -217,13 +220,13 @@ public class ReportWindowBuilder {
 		private final List<ReportItem> leafs = new ArrayList<>();
 
 		public ReportItem() {
-			this("", Duration.ZERO, Duration.ZERO);
+			this("", Duration.ZERO, Duration.ZERO, false);
 		}
 		
 		
         public ReportItem(String comment, Duration duration,
-                        Duration roundedDuration) {
-        	this.logged = false;
+                        Duration roundedDuration, boolean logged) {
+        	this.logged = logged;
             this.comment = comment;
             this.duration = duration;
             this.roundedDuration = roundedDuration;
@@ -237,7 +240,7 @@ public class ReportWindowBuilder {
 			ReportItem item = children.get(group);
 			if (item == null)
 			{
-				item = new ReportItem(group, Duration.ZERO, Duration.ZERO);
+				item = new ReportItem(group, Duration.ZERO, Duration.ZERO, false);
 				children.put(group, item);
 			}
 			return item;
@@ -370,27 +373,22 @@ public class ReportWindowBuilder {
                     setCommentToClipboard(endBinding.get());
                 }
             });
-
-            ObjectBinding<TreeItem<ReportItem>> root = createReportingTreeModel(reportModel);
-			//treeForReport.setRoot(root);
-			treeForReport.rootProperty().bind(root);
-			treeForReport.getSelectionModel().setCellSelectionEnabled(false);
-			
-			//treeForReport.setShowRoot(true);
-
             roundedDurationSum
-                    .textProperty()
-                    .bind(STTBindings
-                            .formattedDuration(createBindingForRoundedDurationSum(reportModel)));
-            
-            pauseSum.textProperty()
+	            .textProperty()
+	            .bind(STTBindings
+	                    .formattedDuration(createBindingForRoundedDurationSum(reportModel)));
+    
+		    pauseSum.textProperty()
 		            .bind(STTBindings
 		                    .formattedDuration(createBindingForPauseSum(reportModel)));
 
-            setRoundedDurationColumnCellFactoryToConvertDurationToString();
-            setDurationColumnCellFactoryToConvertDurationToString();
-            setLoggedColumnCellFactory();
-            setCommentColumnCellFactory();
+            ObjectBinding<TreeItem<ReportItem>> root = createReportingTreeModel(reportModel);
+			treeForReport.rootProperty().bind(root);
+			treeForReport.getSelectionModel().setCellSelectionEnabled(false);
+
+
+
+            initTreeTableColumns();
 
             presetSortingToAscendingCommentColumn();
 
@@ -404,6 +402,20 @@ public class ReportWindowBuilder {
                                     columnForDuration.widthProperty().add(columnForLogged.widthProperty()).add(10))));
             columnForComment.setMinWidth(300);
         }
+
+		private void initTreeTableColumns() {
+			treeForReport.setEditable(true);
+			columnForComment.setEditable(false);
+			columnForDuration.setEditable(false);
+			columnForRoundedDuration.setEditable(false);
+			columnForLogged.setEditable(true);
+			
+			setRoundedDurationColumnCellFactoryToConvertDurationToString();
+            setDurationColumnCellFactoryToConvertDurationToString();
+            
+            setLoggedColumnCellFactory();
+            setCommentColumnCellFactory();
+		}
 
   
 
@@ -609,10 +621,6 @@ public class ReportWindowBuilder {
                         }
                     });
         }
-        
-		private void setLoggedColumnCellFactory() {
-			// TODO
-		}
 
         private void setRoundedDurationColumnCellFactoryToConvertDurationToString() {
             columnForRoundedDuration
@@ -634,6 +642,15 @@ public class ReportWindowBuilder {
                         }
                     });
         }
+        
+        
+		private void setLoggedColumnCellFactory() {
+			columnForLogged.setCellFactory(CheckBoxTreeTableCell.forTreeTableColumn(columnForLogged));
+			
+			columnForLogged.setCellValueFactory(param -> {
+                   return new SimpleBooleanProperty(param.getValue().getValue().isLogged());
+            });
+		}
 
         private ObservableValue<DateTime> addComboBoxForDateTimeSelectionAndReturnSelectedDateTimeProperty() {
             final ComboBox<DateTime> comboBox = new ComboBox<>();
@@ -686,7 +703,7 @@ public class ReportWindowBuilder {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                System.out.println();
+
                 ObservableList<Node> flowPaneChildren = flowPane.getChildren();
                 flowPaneChildren.clear();
 				if (!empty) {
