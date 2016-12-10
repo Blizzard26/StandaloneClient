@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:id="borderPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane fx:id="borderPane" prefHeight="800.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    <bottom>
       <Button mnemonicParsing="false" onAction="#closeWindow" text="%report.done" BorderPane.alignment="CENTER">
          <BorderPane.margin>
@@ -24,9 +24,9 @@
       </FlowPane>
    </top>
    <center>
-      <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
+      <VBox prefHeight="200.0" prefWidth="100.0" maxHeight="Infinity" BorderPane.alignment="CENTER">
          <children>
-            <TreeTableView fx:id="treeForReport" prefHeight="300.0" prefWidth="400.0" showRoot="false">
+            <TreeTableView fx:id="treeForReport" prefHeight="-1" prefWidth="400.0" maxHeight="Infinity" showRoot="false" VBox.vgrow="ALWAYS">
               <columns>
                   <TreeTableColumn fx:id="columnForComment" minWidth="200.0" prefWidth="-1.0" text="%report.comment" />
                   <TreeTableColumn fx:id="columnForLogged" minWidth="40.0" prefWidth="40.0" text="%report.logged" />
