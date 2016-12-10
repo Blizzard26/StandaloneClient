@@ -1,6 +1,14 @@
 package org.stt.reporting;
 
-import com.google.common.base.Optional;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.io.IOUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -8,9 +16,7 @@ import org.stt.model.ReportingItem;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemReader;
 
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Optional;
 
 /**
  * Reads all elements from the given reader and groups by the comment of the
@@ -39,8 +45,6 @@ public class SummingReportGenerator {
 		Map<String, Duration> collectingMap = new HashMap<>();
 
 		Duration uncoveredDuration = Duration.ZERO;
-		Duration workDuration = Duration.ZERO;
-		Duration pauseDuration = Duration.ZERO;
 		
 		Optional<TimeTrackingItem> optionalItem;
 		TimeTrackingItem lastItem = null;
@@ -92,7 +96,7 @@ public class SummingReportGenerator {
 		});
 		
 		return new Report(reportList, startOfReport, endOfReport,
-				uncoveredDuration, workDuration, pauseDuration);
+				uncoveredDuration);
 	}
 
 	public static class Report {
@@ -101,18 +105,13 @@ public class SummingReportGenerator {
 		private final DateTime start;
 		private final DateTime end;
 		private final Duration uncoveredDuration;
-		private Duration workTime;
-		private Duration pauseTime;
 
 		public Report(List<ReportingItem> reportingItems, DateTime start,
-				DateTime end, Duration uncoveredDuration, Duration workTime, 
-				Duration pauseTime) {
+				DateTime end, Duration uncoveredDuration) {
 			this.reportingItems = reportingItems;
 			this.start = start;
 			this.end = end;
 			this.uncoveredDuration = checkNotNull(uncoveredDuration);
-			this.workTime = workTime;
-			this.pauseTime = pauseTime;
 		}
 
 		public List<ReportingItem> getReportingItems() {
@@ -129,14 +128,6 @@ public class SummingReportGenerator {
 
 		public Duration getUncoveredDuration() {
 			return uncoveredDuration;
-		}
-		
-		public Duration getWorkTime() {
-			return workTime;
-		}
-
-		public Duration getPauseTime() {
-			return pauseTime;
 		}
 	}
 }

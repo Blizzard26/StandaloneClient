@@ -90,7 +90,7 @@ public class ReportWindowBuilder {
     private final Provider<Stage> stageProvider;
     private final DurationRounder rounder;
     private final ItemGrouper itemGrouper;
-    private final WorktimeCategorizer worktimeCategorizer;
+    private final WorktimeCategorizer categorizer;
     private final Color[] groupColors;
     private ReportWindowConfig config;
 	private Color breakTimeColor;
@@ -99,14 +99,15 @@ public class ReportWindowBuilder {
     @Inject
     ReportWindowBuilder(Provider<Stage> stageProvider,
                                ItemReaderProvider readerProvider, TimeTrackingItemQueries searcher,
-                               DurationRounder rounder, ItemGrouper itemGrouper, WorktimeCategorizer worktimeCategorizer, ReportWindowConfig config) {
+                               DurationRounder rounder, ItemGrouper itemGrouper,
+                               WorktimeCategorizer worktimeCategorizer, ReportWindowConfig config) {
         this.config = checkNotNull(config);
         this.stageProvider = checkNotNull(stageProvider);
         this.timeTrackingItemQueries = checkNotNull(searcher);
         this.readerProvider = checkNotNull(readerProvider);
         this.rounder = checkNotNull(rounder);
         this.itemGrouper = checkNotNull(itemGrouper);
-        this.worktimeCategorizer = checkNotNull(worktimeCategorizer);
+        this.categorizer = checkNotNull(worktimeCategorizer);
 
         String breakColorString = this.config.getBreakTimeColor();
         breakTimeColor = Color.web(breakColorString);
@@ -370,6 +371,8 @@ public class ReportWindowBuilder {
         @FXML
         private Label roundedDurationSum;
         @FXML
+        private Label workTime;
+        @FXML
         private Label pauseSum;
 
         public ReportWindowController(Stage stage) {
@@ -415,6 +418,10 @@ public class ReportWindowBuilder {
 	            .bind(STTBindings
 	                    .formattedDuration(createBindingForRoundedDurationSum(reportModel)));
     
+            workTime.textProperty()
+            	.bind(STTBindings
+                    .formattedDuration(createBindingForWorkTime(reportModel)));
+            
 		    pauseSum.textProperty()
 		            .bind(STTBindings
 		                    .formattedDuration(createBindingForPauseSum(reportModel)));
@@ -456,13 +463,42 @@ public class ReportWindowBuilder {
 
   
 
+		private ObservableValue<Duration> createBindingForWorkTime(final ObservableValue<Report> reportModel) {
+        	return new ObjectBinding<Duration>() {
+                @Override
+                protected Duration computeValue() {
+                	Duration duration = Duration.ZERO;
+                    for (ReportingItem item : reportModel.getValue().getReportingItems()) {
+                    	if (categorizer.getCategory(item.getComment()) == ItemCategory.WORKTIME)
+                    	{
+                    		duration = duration.plus(rounder.roundDuration(item.getDuration()));
+                    	}
+                    }
+                	
+                	return duration;
+                }
 
+                {
+                    bind(reportModel);
+                }
+
+
+            };
+		}
 
 		private ObservableValue<Duration> createBindingForPauseSum(final ObservableValue<Report> reportModel) {
         	return new ObjectBinding<Duration>() {
                 @Override
                 protected Duration computeValue() {
-                	return reportModel.getValue().getPauseTime();
+                	Duration duration = Duration.ZERO;
+                    for (ReportingItem item : reportModel.getValue().getReportingItems()) {
+                    	if (categorizer.getCategory(item.getComment()) == ItemCategory.BREAK)
+                    	{
+                    		duration = duration.plus(rounder.roundDuration(item.getDuration()));
+                    	}
+                    }
+                	
+                	return duration;
                 }
 
                 {
@@ -725,7 +761,7 @@ public class ReportWindowBuilder {
                 ObservableList<Node> flowPaneChildren = flowPane.getChildren();
                 flowPaneChildren.clear();
 				if (!empty) {
-					ItemCategory category = worktimeCategorizer.getCategory(item);
+					ItemCategory category = categorizer.getCategory(item);
 					switch (category) {
 					case BREAK:
 						colorizePauseTime(item, flowPaneChildren);
