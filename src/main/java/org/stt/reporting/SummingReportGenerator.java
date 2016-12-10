@@ -2,10 +2,10 @@ package org.stt.reporting;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -40,9 +40,9 @@ public class SummingReportGenerator {
 	public Report createReport() {
 		DateTime startOfReport = null;
 		DateTime endOfReport = null;
-		List<ReportingItem> reportList = new LinkedList<>();
+		List<ReportingItem> reportList;
 
-		Map<String, Duration> collectingMap = new HashMap<>();
+		Map<String, ReportingItem> collectingMap = new HashMap<>();
 
 		Duration uncoveredDuration = Duration.ZERO;
 		
@@ -71,21 +71,21 @@ public class SummingReportGenerator {
 			}
 			endOfReport = end;
 
-			Duration duration = new Duration(start, end);
+			ReportingItem reportingItem;
 			String comment = item.getComment().or("");
 			if (collectingMap.containsKey(comment)) {
-				Duration oldDuration = collectingMap.get(comment);
-				collectingMap.put(comment, oldDuration.plus(duration));
+				reportingItem = collectingMap.get(comment);
 			} else {
-				collectingMap.put(comment, duration);
+				reportingItem = new ReportingItem(comment);
+				collectingMap.put(comment, reportingItem);
 			}
+			
+			reportingItem.addTimeTrackingItem(item);
 		}
 
 		IOUtils.closeQuietly(reader);
 
-		for (Map.Entry<String, Duration> e : collectingMap.entrySet()) {
-			reportList.add(new ReportingItem(e.getValue(), e.getKey()));
-		}
+		reportList = new ArrayList<>(collectingMap.values());
 
 		Collections.sort(reportList, new Comparator<ReportingItem>() {
 

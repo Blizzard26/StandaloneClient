@@ -51,6 +51,7 @@ public class SummingReportGeneratorTest {
 				is(Duration.standardMinutes(1)));
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void groupingByCommentWorks() {
 
@@ -71,11 +72,18 @@ public class SummingReportGeneratorTest {
 		// WHEN
 		Report report = sut.createReport();
 		List<ReportingItem> items = report.getReportingItems();
+		
+		
+
 
 		// THEN
-		Assert.assertThat(items, Matchers.containsInAnyOrder(new ReportingItem(
-				new Duration(60 * 1000 + 2 * 1000), "first comment"),
-				new ReportingItem(new Duration(3 * 1000), "first comment?")));
+		Assert.assertThat(items, Matchers.<ReportingItem>containsInAnyOrder(
+				Matchers.<ReportingItem>allOf(
+						Matchers.<ReportingItem>hasProperty("comment", Matchers.equalTo("first comment")), 
+						Matchers.<ReportingItem>hasProperty("duration", Matchers.equalTo(new Duration(60 * 1000 + 2 * 1000)))),
+				Matchers.<ReportingItem>allOf(
+						Matchers.<ReportingItem>hasProperty("comment", Matchers.equalTo("first comment?")), 
+						Matchers.<ReportingItem>hasProperty("duration", Matchers.equalTo(new Duration(3 * 1000))))));
 	}
 
 	@Test
@@ -97,9 +105,10 @@ public class SummingReportGeneratorTest {
 		List<ReportingItem> reportingItems = report.getReportingItems();
 
 		// THEN
-		Assert.assertThat(reportingItems, Matchers
-				.containsInAnyOrder(new ReportingItem(new Duration(
-						60 * 1000 + 2 * 1000), "")));
+		Assert.assertThat(reportingItems, Matchers.<ReportingItem>contains(
+				Matchers.<ReportingItem>allOf(
+						Matchers.<ReportingItem>hasProperty("comment", Matchers.equalTo("")), 
+						Matchers.<ReportingItem>hasProperty("duration", Matchers.equalTo(new Duration(60 * 1000 + 2 * 1000))))));
 	}
 
 	@Test
