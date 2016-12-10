@@ -19,7 +19,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 import org.stt.config.ReportWindowConfig;
-import org.stt.gui.jfx.ReportWindowBuilder.ReportItem;
 import org.stt.gui.jfx.binding.ReportBinding;
 import org.stt.gui.jfx.binding.STTBindings;
 import org.stt.model.ReportingItem;
@@ -41,9 +40,13 @@ import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.binding.When;
-import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -54,15 +57,12 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.CheckBoxTreeItem;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeTableCell;
 import javafx.scene.control.TreeTableColumn;
-import javafx.scene.control.TreeTableColumn.CellDataFeatures;
 import javafx.scene.control.TreeTableColumn.SortType;
 import javafx.scene.control.TreeTablePosition;
 import javafx.scene.control.TreeTableView;
@@ -73,18 +73,14 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Shape;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 public class ReportWindowBuilder {
@@ -206,34 +202,56 @@ public class ReportWindowBuilder {
 			getChildren().setAll(items);
 			setExpanded(true);
 			
+            item.loggedProperty().addListener((obs, wasLogged, isNowLogged) -> {
+                if (isNowLogged) {
+                    getChildren().forEach(child -> child.getValue().setLogged(true));
+                }
+            });
 		}
 	}
 
 	public static class ReportItem {
 
-        private final String comment;
-        private final Duration duration;
-        private final Duration roundedDuration;
-		private boolean logged;
-		
+		private ReportItem parent;
+        private final StringProperty comment = new SimpleStringProperty("");
+        private final ReadOnlyObjectWrapper<Duration> duration = new ReadOnlyObjectWrapper<>(Duration.ZERO);
+        private final ReadOnlyObjectWrapper<Duration> roundedDuration = new ReadOnlyObjectWrapper<>(Duration.ZERO);
+		private final BooleanProperty logged = new SimpleBooleanProperty(false);
+
 		private final Map<String, ReportItem> children = new HashMap<>();
 		private final List<ReportItem> leafs = new ArrayList<>();
+		
 
 		public ReportItem() {
 			this("", Duration.ZERO, Duration.ZERO, false);
 		}
 		
 		
-        public ReportItem(String comment, Duration duration,
+        private ReportItem(String comment, Duration duration,
                         Duration roundedDuration, boolean logged) {
-        	this.logged = logged;
-            this.comment = comment;
-            this.duration = duration;
-            this.roundedDuration = roundedDuration;
+        	this.logged.set(logged);
+            this.comment.set(comment);
+            this.duration.set(duration);
+            this.roundedDuration.set(roundedDuration);
         }
 
         public void addLeaf(ReportItem reportItem) {
 			leafs.add(reportItem);
+			addSubItemToDuration(reportItem);
+		}
+
+		private void addSubItemToDuration(ReportItem reportItem) {
+			this.duration.set(this.duration.get().plus(reportItem.duration.get()));
+			this.roundedDuration.set(this.roundedDuration.get().plus(reportItem.roundedDuration.get()));
+			if (parent != null)
+			{
+				parent.addSubItemToDuration(reportItem);
+			}
+		}
+
+		public boolean isLeaf()
+		{
+			return this.children.isEmpty() && this.leafs.isEmpty();
 		}
 
 		public ReportItem getOrCreateChild(String group) {
@@ -266,25 +284,44 @@ public class ReportWindowBuilder {
 	
 
 		public String getComment() {
-            return comment;
+            return comment.get();
         }
 
         public Duration getDuration() {
-            return duration;
+            return duration.get();
         }
 
         public Duration getRoundedDuration() {
-            return roundedDuration;
+            return roundedDuration.get();
         }
         
         public boolean isLogged()
         {
-        	return logged;
+        	return logged.get();
         }
         
         public void setLogged(boolean logged)
         {
-        	this.logged = logged;
+        	this.logged.set(logged);
+        }
+        
+        public StringProperty commentProperty() 
+        {
+        	return comment;
+        }
+        
+        public BooleanProperty loggedProperty(){
+            return logged;
+        }
+        
+        public ReadOnlyProperty<Duration> durationProperty() 
+        {
+        	return duration.getReadOnlyProperty();
+        }
+        
+        public ReadOnlyProperty<Duration> roundedDurationProperty() 
+        {
+        	return roundedDuration.getReadOnlyProperty();
         }
         
         public String toString()
@@ -309,9 +346,9 @@ public class ReportWindowBuilder {
 
         private final Stage stage;
         @FXML
-        private TreeTableColumn<ReportItem, String> columnForRoundedDuration;
+        private TreeTableColumn<ReportItem, Duration> columnForRoundedDuration;
         @FXML
-        private TreeTableColumn<ReportItem, String> columnForDuration;
+        private TreeTableColumn<ReportItem, Duration> columnForDuration;
         @FXML
         private TreeTableColumn<ReportItem, String> columnForComment;
         
@@ -531,21 +568,11 @@ public class ReportWindowBuilder {
 
         private void setCommentColumnCellFactory() {
         	columnForComment
-        			.setCellValueFactory(new TreeItemPropertyValueFactory<>(
-        					"comment"));
+        			.setCellValueFactory(new TreeItemPropertyValueFactory<>("comment"));
+        	
             if (config.isGroupItems()) {
-                setItemGroupingCellFactory();
+                columnForComment.setCellFactory(p -> { return new CommentTableCell(); });
             }
-        }
-
-        private void setItemGroupingCellFactory() {
-            columnForComment.setCellFactory(new Callback<TreeTableColumn<ReportItem,String>, TreeTableCell<ReportItem,String>>() {
-				@Override
-				public TreeTableCell<ReportItem, String> call(TreeTableColumn<ReportItem, String> param) {
-					return new CommentTableCell();
-				}
-			});
-            
         }
 
         private void addSelectionToClipboardListenerToTableForReport() {
@@ -601,55 +628,24 @@ public class ReportWindowBuilder {
         }
 
         private void setDurationColumnCellFactoryToConvertDurationToString() {
-            columnForDuration
-                    .setCellValueFactory(new TreeItemPropertyValueFactory<ReportItem, String>(
-                            "duration") {
-                        @Override
-                        public ObservableValue<String> call(
-                                CellDataFeatures<ReportItem, String> cellDataFeatures) {
-                            TreeItem<ReportItem> treeItem = cellDataFeatures.getValue();
-							ReportItem value = treeItem.getValue();
-							
-							String duration = "";
-							if (value != null)
-							{
-								duration = FORMATTER_PERIOD_HHh_MMm_SSs
-                                    .print(value
-                                            .getDuration().toPeriod());
-							}
-                            return new SimpleStringProperty(duration);
-                        }
-                    });
+            columnForDuration.setCellValueFactory(
+            		new TreeItemPropertyValueFactory<ReportItem, Duration>(
+                            "duration"));
+            columnForDuration.setCellFactory(p -> { return new DurationTreeTableCell(); });
         }
 
         private void setRoundedDurationColumnCellFactoryToConvertDurationToString() {
             columnForRoundedDuration
-                    .setCellValueFactory(new TreeItemPropertyValueFactory<ReportItem, String>(
-                            "roundedDuration") {
-                        @Override
-                        public ObservableValue<String> call(
-                                CellDataFeatures<ReportItem, String> cellDataFeatures) {
-                            TreeItem<ReportItem> treeItem = cellDataFeatures.getValue();
-							ReportItem value = treeItem.getValue();
-							String duration = "";
-							if (value != null)
-							{
-								duration = FORMATTER_PERIOD_HHh_MMm_SSs
-	                                    .print(value
-	                                            .getRoundedDuration().toPeriod());
-							}
-                            return new SimpleStringProperty(duration);
-                        }
-                    });
+                    .setCellValueFactory(new TreeItemPropertyValueFactory<ReportItem, Duration>(
+                            "roundedDuration"));
+            columnForRoundedDuration.setCellFactory(p -> { return new DurationTreeTableCell(); });
         }
         
         
 		private void setLoggedColumnCellFactory() {
 			columnForLogged.setCellFactory(CheckBoxTreeTableCell.forTreeTableColumn(columnForLogged));
 			
-			columnForLogged.setCellValueFactory(param -> {
-                   return new SimpleBooleanProperty(param.getValue().getValue().isLogged());
-            });
+			columnForLogged.setCellValueFactory(new TreeItemPropertyValueFactory<>("logged"));
 		}
 
         private ObservableValue<DateTime> addComboBoxForDateTimeSelectionAndReturnSelectedDateTimeProperty() {
@@ -677,6 +673,28 @@ public class ReportWindowBuilder {
             return comboBox.getSelectionModel().selectedItemProperty();
         }
 
+    	private class DurationTreeTableCell extends TreeTableCell<ReportItem, Duration> {
+    		@Override protected void updateItem(Duration duration, boolean empty) {
+    		    super.updateItem(duration, empty);
+
+    		    if (empty || duration == null) {
+    		        super.setText(null);
+    		        super.setGraphic(null);
+    		        textFillProperty().bind(new SimpleObjectProperty<Color>(Color.BLACK));
+    		    } else 	{
+    				super.setText(FORMATTER_PERIOD_HHh_MMm_SSs.print(duration.toPeriod()));
+    		        super.setGraphic(null);
+    		        
+    		        ReportItem item = tableRowProperty().get().getItem();
+    			    
+    		    	boolean leaf = item.isLeaf();
+					textFillProperty().bind(new SimpleObjectProperty<Color>(leaf ? Color.BLACK : Color.GREY));
+    		    }
+    		    
+    		}
+    	}
+       
+        
         private class CommentTableCell extends TreeTableCell<ReportItem, String> {
             private TextFlow flowPane = new TextFlow() {
 
@@ -710,7 +728,7 @@ public class ReportWindowBuilder {
 					ItemCategory category = worktimeCategorizer.getCategory(item);
 					switch (category) {
 					case BREAK:
-						colorizeBreakTime(item, flowPaneChildren);
+						colorizePauseTime(item, flowPaneChildren);
 						break;
 					case WORKTIME:
 					default:
@@ -723,7 +741,7 @@ public class ReportWindowBuilder {
                 setGraphic(flowPane);
             }
 
-			private void colorizeBreakTime(String item, ObservableList<Node> flowPaneChildren) {
+			private void colorizePauseTime(String item, ObservableList<Node> flowPaneChildren) {
 				final Label partLabel = new Label(item);
 				addClickListener(Arrays.asList(item), partLabel, 0);
 				Color color = breakTimeColor;
