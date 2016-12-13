@@ -76,6 +76,7 @@ dependencies {
 	compile 'org.yaml:snakeyaml:1.17'
 	compile 'com.atlassian.jira:jira-rest-java-client-core:4.0.0'
 	compile 'com.atlassian.fugue:fugue:2.6.1'
+	compile group: 'com.h2database', name: 'h2', version: '1.4.193'
 
 	testCompile 'junit:junit-dep:4.11'
 	testCompile 'org.hamcrest:hamcrest-core:1.3'

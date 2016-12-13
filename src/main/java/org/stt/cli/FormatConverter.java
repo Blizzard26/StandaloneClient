@@ -61,6 +61,7 @@ public class FormatConverter {
 		to = getWriterFrom(targetFile);
 	}
 
+	// FIXME Use injection to get writer?
 	private ItemWriter getWriterFrom(File output) {
 		try {
 			if (output == null) {

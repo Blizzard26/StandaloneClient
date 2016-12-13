@@ -223,6 +223,7 @@ public class Main {
 			return;
 		}
 
+		// FIXME: Use injection to get item persister
 		try (STTItemPersister itemPersister = new STTItemPersister(
 				createReaderProvider(), createWriterProvider())) {
 
@@ -282,6 +283,7 @@ public class Main {
 	/**
 	 * creates a new ItemReaderProvider for timeFile
 	 */
+	// FIXME User injection to get reader
 	private ItemReaderProvider createNewReaderProvider(final File source) {
         ItemReaderProvider provider = new ItemReaderProvider() {
             @Override
@@ -303,6 +305,7 @@ public class Main {
         return new PreCachingItemReaderProvider(provider);
     }
 
+	// FIXME: Use injection to get reader
 	private Provider<Reader> createReaderProvider() {
 		return new Provider<Reader>() {
 			@Override
@@ -317,6 +320,7 @@ public class Main {
 		};
 	}
 
+	// FIXME: Use injection to get reader
 	private Provider<Writer> createWriterProvider() {
 		return new Provider<Writer>() {
 			@Override
