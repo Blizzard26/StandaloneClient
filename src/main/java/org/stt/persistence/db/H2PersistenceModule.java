@@ -1,4 +1,4 @@
-package org.stt.persistence.h2;
+package org.stt.persistence.db;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,14 +27,14 @@ public class H2PersistenceModule extends AbstractModule {
 
 	@Override
 	protected void configure() {
-        bind(ItemReader.class).to(H2ItemReader.class);
-        bind(ItemWriter.class).to(H2ItemWriter.class);
+        bind(ItemReader.class).to(DBItemReader.class);
+        bind(ItemWriter.class).to(DBItemWriter.class);
         bind(ItemReaderProvider.class).to(PreCachingItemReaderProvider.class);
         bind(TimeTrackingItemQueries.class).to(DefaultTimeTrackingItemQueries.class);
-        bind(ItemPersister.class).to(H2ItemPersister.class);
+        bind(ItemPersister.class).to(DBItemPersister.class);
 	}
 
-	@Provides @H2DBConnection
+	@Provides
 	public H2ConnectionProvider getDBConnection() throws SQLException, ClassNotFoundException
 	{
 		return new H2ConnectionProvider(null); // FIXME
