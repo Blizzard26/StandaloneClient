@@ -2,7 +2,6 @@ package org.stt.persistence.db.h2;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.jooq.impl.DSL.table;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 import static org.mockito.BDDMockito.given;

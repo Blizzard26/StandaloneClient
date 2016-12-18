@@ -3,12 +3,16 @@ package org.stt.persistence.db.h2;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.jooq.ConnectionProvider;
 import org.jooq.exception.DataAccessException;
 
 public class H2ConnectionProvider implements ConnectionProvider {
 
+	
+	private static final Logger LOG = Logger.getLogger(H2ConnectionProvider.class.getName());
 	
 	private final H2Configuration configuration;
 	private Connection connection;
@@ -21,24 +25,36 @@ public class H2ConnectionProvider implements ConnectionProvider {
 	}
 
 	public synchronized Connection acquire() throws DataAccessException {
+		boolean connectionValid;
 		try {
-			if (connection == null || connection.isClosed()) 
-			{
-				
-			    connection = DriverManager.getConnection("jdbc:h2:"+configuration.getDatabase(), 
-			    		configuration.getUserName(), 
-			    		configuration.getPassword() );
-			    
-			   
-			    openConnectionCount = 0;
-			}
-			
-			openConnectionCount++;
-
-	        return connection;
+			connectionValid = connection != null && connection.isValid(5);
 		} catch (SQLException e) {
-			throw new DataAccessException("SQL Exception opening new connection", e);
+			LOG.log(Level.WARNING, "Exception determining connection state", e);
+			connectionValid = false;
 		}
+
+		if (!connectionValid) {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					LOG.log(Level.WARNING, "Unable to close invalid connection", e);
+				}
+			}
+
+			try {
+				connection = DriverManager.getConnection("jdbc:h2:" + configuration.getDatabase(),
+						configuration.getUserName(), configuration.getPassword());
+			} catch (SQLException e) {
+				throw new DataAccessException("SQL Exception opening new connection", e);
+			}
+
+			openConnectionCount = 0;
+		}
+
+		openConnectionCount++;
+
+		return connection;
 
 	}
 	
