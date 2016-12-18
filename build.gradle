@@ -78,6 +78,7 @@ dependencies {
 	compile 'com.atlassian.fugue:fugue:2.6.1'
 	compile group: 'com.h2database', name: 'h2', version: '1.4.193'
 	compile group: 'org.jooq', name: 'jooq', version: '3.8.6'
+	compile group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.12'
 
 	testCompile 'junit:junit-dep:4.11'
 	testCompile 'org.hamcrest:hamcrest-core:1.3'
