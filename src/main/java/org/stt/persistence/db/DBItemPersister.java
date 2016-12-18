@@ -7,7 +7,6 @@ import java.util.List;
 import org.joda.time.DateTime;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemPersister;
-import org.stt.persistence.db.h2.H2DBStorage;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -15,10 +14,10 @@ import com.google.inject.Inject;
 
 public class DBItemPersister implements ItemPersister {
 
-	private final H2DBStorage dbStorage;
+	private final DBStorage dbStorage;
 
 	@Inject
-	public DBItemPersister(H2DBStorage dbStorage) throws SQLException {
+	public DBItemPersister(DBStorage dbStorage) throws SQLException {
 		this.dbStorage = dbStorage;
 	}
 

@@ -12,6 +12,7 @@ import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.db.DBItemPersister;
 import org.stt.persistence.db.DBItemReader;
 import org.stt.persistence.db.DBItemWriter;
+import org.stt.persistence.db.DBStorage;
 import org.stt.query.DefaultTimeTrackingItemQueries;
 import org.stt.query.TimeTrackingItemQueries;
 
@@ -46,7 +47,7 @@ public class H2PersistenceModule extends AbstractModule {
 	}
 	
 	@Provides
-	@Inject public H2DBStorage getDBStorage(ConnectionProvider connectionProvider) throws SQLException
+	@Inject public DBStorage getDBStorage(ConnectionProvider connectionProvider) throws SQLException
 	{
 		return new H2DBStorage(connectionProvider);
 	}

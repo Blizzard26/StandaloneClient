@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.DBStorage;
 
 import com.google.common.base.Optional;
 
@@ -36,7 +37,7 @@ public class H2DBStorageTest {
 	@Mock
 	H2Configuration configuration;
 
-	private H2DBStorage sut;
+	private DBStorage sut;
 
 	private Connection connection;
 

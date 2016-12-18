@@ -7,7 +7,6 @@ import java.util.logging.Logger;
 
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemReader;
-import org.stt.persistence.db.h2.H2DBStorage;
 
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
@@ -17,13 +16,13 @@ public class DBItemReader implements ItemReader {
 	private static final Logger LOG = Logger.getLogger(ItemReader.class
             .getName());
 	
-	private H2DBStorage dbStorage;
+	private DBStorage dbStorage;
 
 	private Iterator<TimeTrackingItem> itemIter;
 	
 
 	@Inject
-	public DBItemReader(H2DBStorage dbStorage)  {
+	public DBItemReader(DBStorage dbStorage)  {
 		this.dbStorage = dbStorage;
 	}
 

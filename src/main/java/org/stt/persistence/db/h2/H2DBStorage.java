@@ -27,11 +27,12 @@ import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.DBStorage;
 
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 
-public class H2DBStorage {
+public class H2DBStorage implements DBStorage {
 	
 	public static final class TimeTrackingItemMapper
 			implements RecordMapper<Record4<DateTime, DateTime, String, Boolean>, TimeTrackingItem> {
@@ -114,6 +115,10 @@ public class H2DBStorage {
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.stt.persistence.db.h2.DBStorage#getTimeTrackingItemsInRange(org.joda.time.DateTime, com.google.common.base.Optional)
+	 */
+	@Override
 	public List<TimeTrackingItem> getTimeTrackingItemsInRange(DateTime start, Optional<DateTime> end) throws SQLException
 	{
 		try (DSLContext context = DSL.using(connectionProvider, SQLDialect.H2))
@@ -152,6 +157,10 @@ public class H2DBStorage {
 
 	
 	
+	/* (non-Javadoc)
+	 * @see org.stt.persistence.db.h2.DBStorage#getAllItems()
+	 */
+	@Override
 	public List<TimeTrackingItem> getAllItems() throws SQLException
 	{
 		try (DSLContext context = DSL.using(connectionProvider, SQLDialect.H2))
@@ -173,6 +182,10 @@ public class H2DBStorage {
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.stt.persistence.db.h2.DBStorage#insertItemInDB(org.stt.model.TimeTrackingItem)
+	 */
+	@Override
 	public void insertItemInDB(TimeTrackingItem item) throws SQLException {
 		try (DSLContext context = DSL.using(connectionProvider, SQLDialect.H2))
 		{
@@ -183,6 +196,10 @@ public class H2DBStorage {
 	}
 	
 
+	/* (non-Javadoc)
+	 * @see org.stt.persistence.db.h2.DBStorage#deleteItemInDB(org.stt.model.TimeTrackingItem)
+	 */
+	@Override
 	public void deleteItemInDB(TimeTrackingItem item) throws SQLException {
 		try (DSLContext context = DSL.using(connectionProvider, SQLDialect.H2))
 		{
