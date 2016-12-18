@@ -122,7 +122,7 @@ public class DefaultTimeTrackingItemQueries implements TimeTrackingItemQueries {
 			while ((!maxItems.isPresent() || result.size() < maxItems.get()) && (read = reader.read()).isPresent()) {
 				TimeTrackingItem item = read.get();
 				boolean afterStart = !start.isPresent() || !item.getStart().isBefore(start.get());
-                boolean itemDoesntEndAfterQuery = item.getEnd().isPresent() && !item.getEnd().get().isAfter(end.get());
+                boolean itemDoesntEndAfterQuery = !end.isPresent() || (item.getEnd().isPresent() && !item.getEnd().get().isAfter(end.get()));
                 boolean beforeEnd = !end.isPresent() || itemDoesntEndAfterQuery;
 				if (afterStart && beforeEnd) {
 					result.add(item);
