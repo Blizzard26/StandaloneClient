@@ -5,7 +5,6 @@ import static org.mockito.BDDMockito.given;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import org.hamcrest.Matchers;
@@ -26,7 +25,7 @@ import com.google.common.base.Optional;
 
 public class DBItemReaderTest {
 
-	private DBConnectionProvider connectionProvider;
+	private H2ConnectionProvider connectionProvider;
 	private DBItemReader sut;
 	
 	@Mock
@@ -44,7 +43,7 @@ public class DBItemReaderTest {
 		
 		
 		this.connectionProvider = new H2ConnectionProvider(configuration);
-		connection = connectionProvider.getConnection();
+		connection = connectionProvider.acquire();
 		
 		this.dbStorage = new H2DBStorage(connectionProvider);
 		
@@ -55,18 +54,16 @@ public class DBItemReaderTest {
 	public void tearDown() throws IOException, SQLException {
 		sut.close();
 		
-		connectionProvider.releaseConnection(connection);
+		connectionProvider.release(connection);
 		
-		Assume.assumeThat(connectionProvider.getConnectionCount(), is(0));
+		Assume.assumeThat(connectionProvider.getOpenConnectionCount(), is(0));
 	}
 	
 	@Test
 	public void multiLineCommentGetsImportedCorrectly() throws ClassNotFoundException, SQLException {
 
 		// GIVEN
-		givenItem(
-				new DateTime(2012,10,10,22,00,00), new DateTime(2012,11,10,22,00,01), 
-				"this is\n a multiline\r string\r\n with different separators");
+		dbStorage.insertItemInDB(new TimeTrackingItem("this is\n a multiline\r string\r\n with different separators", new DateTime(2012,10,10,22,00,00), Optional.fromNullable(new DateTime(2012,11,10,22,00,01))));
 
 		// WHEN
 		Optional<TimeTrackingItem> readItem = sut.read();
@@ -82,7 +79,7 @@ public class DBItemReaderTest {
 	public void onlyStartTimeGiven() throws ClassNotFoundException, SQLException {
 
 		// GIVEN
-		givenItem(new DateTime(2012,10,10,22,00,00), null, null);
+		dbStorage.insertItemInDB(new TimeTrackingItem(null, new DateTime(2012,10,10,22,00,00), Optional.fromNullable(null)));
 
 		// WHEN
 		Optional<TimeTrackingItem> readItem = sut.read();
@@ -96,8 +93,7 @@ public class DBItemReaderTest {
 	public void startTimeAndCommentGiven() throws ClassNotFoundException, SQLException {
 
 		// GIVEN
-		givenItem(
-				new DateTime(2012,10,10,22,00,00), null, "the long comment");
+		dbStorage.insertItemInDB(new TimeTrackingItem("the long comment", new DateTime(2012,10,10,22,00,00), Optional.fromNullable(null)));
 
 		// WHEN
 		Optional<TimeTrackingItem> readItem = sut.read();
@@ -107,31 +103,6 @@ public class DBItemReaderTest {
 		Assert.assertThat(time, Matchers.equalTo(readItem.get().getStart()));
 		Assert.assertThat("the long comment",
 				Matchers.equalTo(readItem.get().getComment().get()));
-	}
-	
-	private void givenItem(DateTime startDate, DateTime endDate, String comment)
-			throws ClassNotFoundException, SQLException {
-
-		try (PreparedStatement preparedStatement = connection.prepareStatement(H2DBStorage.INSERT_STATEMENT))
-		{
-
-			preparedStatement.setTimestamp(H2DBStorage.INDEX_START, DBUtil.transform(startDate));
-			if (endDate != null) {
-				preparedStatement.setTimestamp(H2DBStorage.INDEX_END, DBUtil.transform(endDate));
-			} else {
-				preparedStatement.setNull(H2DBStorage.INDEX_END, java.sql.Types.BIGINT);
-			}
-	
-			if (comment != null) {
-				preparedStatement.setString(H2DBStorage.INDEX_COMMENT, comment);
-			} else {
-				preparedStatement.setNull(H2DBStorage.INDEX_COMMENT, java.sql.Types.VARCHAR);
-			}
-	
-			preparedStatement.setNull(H2DBStorage.INDEX_LOGGED, java.sql.Types.INTEGER);
-			preparedStatement.executeUpdate();
-		}
-		
 	}
 
 

@@ -23,6 +23,17 @@ public final class TimeTrackingItem {
 	private final DateTime start;
 	private final Optional<DateTime> end;
 
+	public TimeTrackingItem(String comment, DateTime start, Optional<DateTime> end) {
+		this.comment = Optional.fromNullable(comment);
+		this.start = checkNotNull(start, "start must not be null");
+		this.end = end;
+		if (end.isPresent())
+		{
+			checkState(!end.get().isBefore(start),
+					"end must not be before start for item " + this.toString());
+		}
+	}
+	
 	/**
 	 * @param comment
 	 *            comment string describing this item. May be null
@@ -32,11 +43,7 @@ public final class TimeTrackingItem {
 	 *            end time of the item.
 	 */
 	public TimeTrackingItem(String comment, DateTime start, DateTime end) {
-		this.comment = Optional.fromNullable(comment);
-		this.start = checkNotNull(start, "start must not be null");
-		this.end = Optional.of(end);
-		checkState(!end.isBefore(start),
-				"end must not be before start for item " + this.toString());
+		this(comment, start, Optional.fromNullable(end));
 	}
 
 	/**
@@ -46,9 +53,7 @@ public final class TimeTrackingItem {
 	 *            start time of the item
 	 */
 	public TimeTrackingItem(String comment, DateTime start) {
-		this.comment = Optional.fromNullable(comment);
-		this.start = start;
-		this.end = Optional.absent();
+		this(comment, start, Optional.absent());
 	}
 
 	public Optional<String> getComment() {

@@ -1,17 +1,14 @@
 package org.stt.persistence.db;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.BDDMockito.given;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
 
+import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assume;
@@ -27,7 +24,7 @@ import org.stt.persistence.db.h2.H2DBStorage;
 
 public class DBItemWriterTest {
 
-	private DBConnectionProvider connectionProvider;
+	private H2ConnectionProvider connectionProvider;
 	private DBItemWriter sut;
 	
 	@Mock
@@ -45,7 +42,7 @@ public class DBItemWriterTest {
 		
 		
 		this.connectionProvider = new H2ConnectionProvider(configuration);
-		connection = connectionProvider.getConnection();
+		connection = connectionProvider.acquire();
 		
 		this.dbStorage = new H2DBStorage(connectionProvider);
 		
@@ -56,9 +53,9 @@ public class DBItemWriterTest {
 	public void tearDown() throws IOException, SQLException {
 		sut.close();
 		
-		connectionProvider.releaseConnection(connection);
+		connectionProvider.release(connection);
 		
-		Assume.assumeThat(connectionProvider.getConnectionCount(), is(0));
+		Assume.assumeThat(connectionProvider.getOpenConnectionCount(), is(0));
 	}
 
 	@Test
@@ -70,19 +67,7 @@ public class DBItemWriterTest {
 		sut.write(item );
 		
 		// THEN
-		try (Statement statement = connection.createStatement()) {
-			try (ResultSet resultSet = statement.executeQuery(H2DBStorage.SELECT_QUERY))
-			{
-				assertThat(resultSet.next(), is(true));
-				assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_START), is(new Timestamp(7500000L)));
-				assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_END), nullValue());
-				assertThat(resultSet.wasNull(), is(true));
-				assertThat(resultSet.getString(H2DBStorage.INDEX_COMMENT), is("Test"));
-				
-				assertThat(resultSet.next(), is(false));
-			}
-		}
-
+		assertThat(dbStorage.getAllItems(), Matchers.contains(item));
 	}
 	
 	

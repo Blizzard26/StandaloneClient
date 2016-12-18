@@ -1,21 +1,25 @@
 package org.stt.persistence.db.h2;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.jooq.impl.DSL.table;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 import static org.mockito.BDDMockito.given;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
 import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
+import org.jooq.DSLContext;
+import org.jooq.Record4;
+import org.jooq.ResultQuery;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -23,17 +27,12 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
-import org.stt.persistence.db.DBConnectionProvider;
-import org.stt.persistence.db.DBUtil;
-import org.stt.persistence.db.h2.H2Configuration;
-import org.stt.persistence.db.h2.H2ConnectionProvider;
-import org.stt.persistence.db.h2.H2DBStorage;
 
 import com.google.common.base.Optional;
 
-public class H2StorageTest {
+public class H2DBStorageTest {
 	
-	private DBConnectionProvider connectionProvider;
+	private H2ConnectionProvider connectionProvider;
 	
 	@Mock
 	H2Configuration configuration;
@@ -52,7 +51,7 @@ public class H2StorageTest {
 		
 		
 		this.connectionProvider = new H2ConnectionProvider(configuration);
-		connection = connectionProvider.getConnection();
+		connection = connectionProvider.acquire();
 		
 		this.sut = new H2DBStorage(connectionProvider);
 	}
@@ -60,9 +59,9 @@ public class H2StorageTest {
 	@After
 	public void tearDown() throws Exception {
 
-		connectionProvider.releaseConnection(connection);
+		connectionProvider.release(connection);
 		
-		assumeThat(connectionProvider.getConnectionCount(), is(0));
+		assumeThat(connectionProvider.getOpenConnectionCount(), is(0));
 	}
 
 	@Test(expected = NullPointerException.class)
@@ -421,42 +420,29 @@ public class H2StorageTest {
 			}
 		});
 		
-			try (Statement statement = connection.createStatement())
-			{
-				
-				try (ResultSet resultSet = statement.executeQuery(H2DBStorage.SELECT_QUERY))
-				{
-					for (TimeTrackingItem item : items)
-					{
-						assertThat("Missing item: " + item, resultSet.next(), is(true));
-						assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_START), is(DBUtil.transform(item.getStart())));
-						if (item.getEnd().isPresent())
-						{
-							assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_END), is(DBUtil.transform(item.getEnd().get())));
-						}
-						else
-						{
-							resultSet.getTimestamp(H2DBStorage.INDEX_END);
-							assertThat(resultSet.wasNull(), is(true));
-						}
+		try (DSLContext context = DSL.using(connectionProvider, SQLDialect.H2))
+		{
+			ResultQuery<Record4<DateTime, DateTime, String, Boolean>> sql = context
+					.select(H2DBStorage.COLUMN_START, 
+							H2DBStorage.COLUMN_END, 
+							H2DBStorage.COLUMN_COMMENT,
+							H2DBStorage.COLUMN_LOGGED)
+					.from(H2DBStorage.ITEMS_TABLE).
+					orderBy(H2DBStorage.COLUMN_START.asc());
+		
+			List<Record4<DateTime,DateTime,String,Boolean>> result = sql.fetch();
+			
+			assertThat("Size missmatch", items.length, is(result.size()));
 						
-						if (item.getComment().isPresent())
-						{
-							assertThat(resultSet.getString(H2DBStorage.INDEX_COMMENT), is(item.getComment().get()));
-						}
-						else
-						{
-							resultSet.getString(H2DBStorage.INDEX_COMMENT);
-							assertThat(resultSet.wasNull(), is(true));
-						}
-					}
-					
-					assertThat("DB contains more items than expected!", resultSet.next(), is(false));
-					
-				}
-			} catch (SQLException e) {
-				assumeNoException(e);
+			for (int i = 0; i < items.length; i++) {
+				TimeTrackingItem item = items[i];
+				Record4<DateTime, DateTime, String, Boolean> record = result.get(i);
+				assertThat(record.get(H2DBStorage.COLUMN_START), is(item.getStart()));
+				assertThat(record.get(H2DBStorage.COLUMN_END), is(item.getEnd().orNull()));
+				assertThat(record.get(H2DBStorage.COLUMN_COMMENT), is(item.getComment().orNull()));
 			}
+			
+		}
 	}
 
 	

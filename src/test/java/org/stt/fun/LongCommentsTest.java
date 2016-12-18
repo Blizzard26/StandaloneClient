@@ -12,6 +12,8 @@ import org.stt.model.TimeTrackingItem;
 
 import static org.hamcrest.CoreMatchers.is;
 
+import org.joda.time.DateTime;
+
 /**
  *
  * @author dante
@@ -29,7 +31,7 @@ public class LongCommentsTest extends AchievementTestBase {
 	@Test
 	public void shouldNotTriggerIfNotEnoughTimes() {
 		// GIVEN
-		sut.process(new TimeTrackingItem("12345", null));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
 		sut.done();
 
 		// WHEN
@@ -42,9 +44,9 @@ public class LongCommentsTest extends AchievementTestBase {
 	@Test
 	public void shouldNotTriggerIfCommentTooShort() {
 		// GIVEN
-		sut.process(new TimeTrackingItem("12345", null));
-		sut.process(new TimeTrackingItem("12345", null));
-		sut.process(new TimeTrackingItem("1234", null));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
+		sut.process(new TimeTrackingItem("1234", DateTime.now()));
 		sut.done();
 
 		// WHEN
@@ -57,9 +59,9 @@ public class LongCommentsTest extends AchievementTestBase {
 	@Test
 	public void shouldTriggerIfEnoughLongComments() {
 		// GIVEN
-		sut.process(new TimeTrackingItem("12345", null));
-		sut.process(new TimeTrackingItem("123456", null));
-		sut.process(new TimeTrackingItem("1234567", null));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
+		sut.process(new TimeTrackingItem("123456", DateTime.now()));
+		sut.process(new TimeTrackingItem("1234567", DateTime.now()));
 		sut.done();
 
 		// WHEN
@@ -72,9 +74,9 @@ public class LongCommentsTest extends AchievementTestBase {
 	@Test
 	public void shouldNotTriggerIfEnoughLongCommentsButAllTheSame() {
 		// GIVEN
-		sut.process(new TimeTrackingItem("12345", null));
-		sut.process(new TimeTrackingItem("12345", null));
-		sut.process(new TimeTrackingItem("12345", null));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
+		sut.process(new TimeTrackingItem("12345", DateTime.now()));
 		sut.done();
 
 		// WHEN

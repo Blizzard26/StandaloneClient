@@ -34,7 +34,7 @@ public class DBItemPersisterTest {
 	public static DateTime[] sampleDateTimes = new DateTime[] { new DateTime(2011, 10, 10, 11, 12, 13),
 			new DateTime(2010, 10, 10, 11, 12, 13), new DateTime(2012, 10, 10, 11, 12, 13) };
 
-	private DBConnectionProvider connectionProvider;
+	private H2ConnectionProvider connectionProvider;
 	private DBItemPersister sut;
 
 	@Mock
@@ -53,7 +53,7 @@ public class DBItemPersisterTest {
 		given(configuration.getPassword()).willReturn("");
 
 		this.connectionProvider = new H2ConnectionProvider(configuration);
-		connection = connectionProvider.getConnection();
+		connection = connectionProvider.acquire();
 
 		this.dbStorage = new H2DBStorage(connectionProvider);
 
@@ -64,9 +64,9 @@ public class DBItemPersisterTest {
 	public void tearDown() throws IOException, SQLException {
 		sut.close();
 
-		connectionProvider.releaseConnection(connection);
+		connectionProvider.release(connection);
 
-		assumeThat(connectionProvider.getConnectionCount(), is(0));
+		assumeThat(connectionProvider.getOpenConnectionCount(), is(0));
 	}
 
 	@Test(expected = NullPointerException.class)
