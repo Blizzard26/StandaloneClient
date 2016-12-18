@@ -10,6 +10,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
 import org.stt.model.TimeTrackingItem;
@@ -18,6 +20,8 @@ import com.google.common.base.Optional;
 import com.google.inject.Inject;
 
 public class DBStorage {
+	
+	protected static final Logger LOG = Logger.getLogger(DBStorage.class.getName());
 	
 	public static final int INDEX_LOGGED = 4;
 	public static final int INDEX_COMMENT = 3;
@@ -100,7 +104,7 @@ public class DBStorage {
 		sql.append(" ) ");
 		sql.append(" ORDER BY ").append(COLUMN_NAME_START).append(" ASC ");
 		
-		System.out.println(sql.toString());
+		LOG.log(Level.FINEST, sql.toString());
 
 		Connection connection = connectionProvider.getConnection();
 		try 
@@ -188,6 +192,7 @@ public class DBStorage {
 
 
 	public void insertItemInDB(TimeTrackingItem item) throws SQLException {
+		//System.out.println("Insert: "+item);
 		Connection connection = connectionProvider.getConnection();
 		try {
 
@@ -215,6 +220,7 @@ public class DBStorage {
 	
 
 	public void deleteItemInDB(TimeTrackingItem item) throws SQLException {
+		//System.out.println("Delete: "+item);
 		Connection connection = connectionProvider.getConnection();
 		try {
 			PreparedStatementBuilder sql = new PreparedStatementBuilder();
@@ -237,7 +243,7 @@ public class DBStorage {
 				sql.append(" is NULL");
 			}
 			
-			System.out.println(sql.toString());
+			LOG.log(Level.FINEST, sql.toString());
 			
 			try (PreparedStatement stmt = sql.prepareStatement(connection)) {
 				stmt.execute();

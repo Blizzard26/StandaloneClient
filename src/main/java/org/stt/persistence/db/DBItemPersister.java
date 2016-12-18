@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.joda.time.DateTime;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemPersister;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 
@@ -29,80 +31,97 @@ public class DBItemPersister implements ItemPersister {
 		Preconditions.checkNotNull(item);
 
 		try {
-			List<TimeTrackingItem> overlappingItems = this.dbStorage.getTimeTrackingItemsInRange(item.getStart(), item.getEnd());
+			DateTime start = item.getStart();
+			Optional<DateTime> itemEnd = item.getEnd();
+			List<TimeTrackingItem> overlappingItems = this.dbStorage.getTimeTrackingItemsInRange(start, itemEnd);
 			
-			for (TimeTrackingItem other : overlappingItems)
-			{
-				if (item.getStart().isBefore(other.getStart()))
-				{
-					
-					//    |------
-					// |--------- item
-					if (!item.getEnd().isPresent() // Inserted item has no end
-					
-					//   |----|
-					// |---------| item
-							|| (other.getEnd().isPresent() 
-									&& item.getEnd().get().isAfter(other.getEnd().get())))
-					{
-						this.dbStorage.deleteItemInDB(other);
-					}
+			for (TimeTrackingItem other : overlappingItems) {
+				DateTime otherStart = other.getStart();
+				
+				if (start.isBefore(otherStart) || start.isEqual(otherStart)) {
 
-					//   |-----------
-					// |---------| item
-					else if (item.getEnd().isPresent() 
-							&& (!other.getEnd().isPresent() 
-									|| other.getEnd().get().isAfter(item.getEnd().get())))
+					if (!itemEnd.isPresent()) // Inserted item has no end
 					{
-						TimeTrackingItem newItem;
-						if (other.getEnd().isPresent())
-						{
-							newItem = new TimeTrackingItem(other.getComment().orNull(), 
-									item.getEnd().get(), 
-									other.getEnd().get());
+						// |------ other
+						// |--------- item
+						this.dbStorage.deleteItemInDB(other);
+					} else { // itemEnd.isPresent
+						DateTime end = itemEnd.get();
+
+						if (other.getEnd().isPresent()) {
+							DateTime otherEnd = other.getEnd().get();
+
+							if (otherEnd.isAfter(end)) {
+								// |--------| other
+								// |-----|    item
+								TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), end,
+											otherEnd); 
+								replace(other, newItem);
+							} else { // (end.isAfter(otherEnd) || end.isEqual(otherEnd))
+								// |----| other
+								// |---------| item
+								this.dbStorage.deleteItemInDB(other);
+							}
+						} else { // !other.getEnd().isPresent()
+							// |--------- other
+							// |------| item
+							TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), end);
+							replace(other, newItem);
 						}
-						else
-						{
-							newItem = new TimeTrackingItem(other.getComment().orNull(), 
-									item.getEnd().get());
+					}
+				} else { // start.isAfter(other.getStart())
+					if (itemEnd.isPresent()) {
+
+						DateTime end = itemEnd.get();
+
+						if (!other.getEnd().isPresent()) {
+							// |---------- other
+							//   |-----| item
+
+							// Split old item
+							TimeTrackingItem first = new TimeTrackingItem(other.getComment().orNull(), otherStart,
+									start);
+							TimeTrackingItem second = new TimeTrackingItem(other.getComment().orNull(), end);
+
+							this.dbStorage.deleteItemInDB(other);
+							this.dbStorage.insertItemInDB(first);
+							this.dbStorage.insertItemInDB(second);
+						} else { // other.getEnd().isPresent()
+
+							DateTime otherEnd = other.getEnd().get();
+
+							if (end.isBefore(other.getEnd().get())) {
+
+								// |----------| other
+								//   |-----| item
+
+								// Split old item
+								TimeTrackingItem first = new TimeTrackingItem(other.getComment().orNull(),
+										otherStart, start);
+								TimeTrackingItem second = new TimeTrackingItem(other.getComment().orNull(), end,
+										otherEnd);
+								this.dbStorage.deleteItemInDB(other);
+								this.dbStorage.insertItemInDB(first);
+								this.dbStorage.insertItemInDB(second);
+							} else {
+
+								// |----|
+								//   |-----| item
+								TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(),
+										otherStart, start);
+								replace(other, newItem);
+							}
 						}
+					} else { // !itemEnd.isPresent()
+
+						// |----|
+						//   |----- item
+						TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), otherStart,
+								start);
 						replace(other, newItem);
 					}
 				}
-				else
-				{
-					// |----
-					// |----
-					
-					
-					// |---------|
-					//   |-----| item
-					if (item.getEnd().isPresent() 
-							&& (!other.getEnd().isPresent() || item.getEnd().get().isBefore(other.getEnd().get())))
-					{
-						// Split old item
-						TimeTrackingItem first = new TimeTrackingItem(other.getComment().orNull(), other.getStart(), item.getStart());
-						TimeTrackingItem second;
-						if (other.getEnd().isPresent())
-						{
-							second = new TimeTrackingItem(other.getComment().orNull(), item.getEnd().get(), other.getEnd().get());
-						}
-						else
-						{
-							second = new TimeTrackingItem(other.getComment().orNull(), item.getEnd().get());
-						}
-						this.dbStorage.deleteItemInDB(other);
-						this.dbStorage.insertItemInDB(first);
-						this.dbStorage.insertItemInDB(second);
-					}
-					
-					// |----|
-					//   |----- item
-					TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), other.getStart(), item.getStart());
-					replace(other, newItem);
-					
-				}
-				
+
 			}
 			this.dbStorage.insertItemInDB(item);
 		} catch (SQLException e) {
