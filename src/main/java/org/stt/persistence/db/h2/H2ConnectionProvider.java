@@ -1,10 +1,12 @@
-package org.stt.persistence.db;
+package org.stt.persistence.db.h2;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class H2ConnectionProvider  {
+import org.stt.persistence.db.DBConnectionProvider;
+
+public class H2ConnectionProvider implements DBConnectionProvider {
 
 	
 	private final H2Configuration configuration;

@@ -49,10 +49,10 @@ public class DBStorage {
 			+ COLUMN_NAME_COMMENT + ", " + COLUMN_NAME_LOGGED + " " + "FROM " + ITEMS_TABLE_NAME + " "
 			+ "ORDER BY " + COLUMN_NAME_START + " ASC";
 	
-	private H2ConnectionProvider connectionProvider;
+	private DBConnectionProvider connectionProvider;
 	private boolean dbInitialized = false;
 
-	@Inject public DBStorage(H2ConnectionProvider connectionProvider) throws SQLException
+	@Inject public DBStorage(DBConnectionProvider connectionProvider) throws SQLException
 	{
 		this.connectionProvider = connectionProvider;	
 		init();

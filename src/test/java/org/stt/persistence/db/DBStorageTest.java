@@ -23,12 +23,14 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.h2.H2Configuration;
+import org.stt.persistence.db.h2.H2ConnectionProvider;
 
 import com.google.common.base.Optional;
 
 public class DBStorageTest {
 	
-	private H2ConnectionProvider connectionProvider;
+	private DBConnectionProvider connectionProvider;
 	
 	@Mock
 	H2Configuration configuration;

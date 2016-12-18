@@ -22,6 +22,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.h2.H2Configuration;
+import org.stt.persistence.db.h2.H2ConnectionProvider;
 
 
 @RunWith(Theories.class)
@@ -31,7 +33,7 @@ public class DBItemPersisterTest {
 	public static DateTime[] sampleDateTimes = new DateTime[] { new DateTime(2011, 10, 10, 11, 12, 13),
 			new DateTime(2010, 10, 10, 11, 12, 13), new DateTime(2012, 10, 10, 11, 12, 13) };
 
-	private H2ConnectionProvider connectionProvider;
+	private DBConnectionProvider connectionProvider;
 	private DBItemPersister sut;
 
 	@Mock

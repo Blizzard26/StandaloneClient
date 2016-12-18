@@ -20,11 +20,13 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.h2.H2Configuration;
+import org.stt.persistence.db.h2.H2ConnectionProvider;
 
 
 public class DBItemWriterTest {
 
-	private H2ConnectionProvider connectionProvider;
+	private DBConnectionProvider connectionProvider;
 	private DBItemWriter sut;
 	
 	@Mock

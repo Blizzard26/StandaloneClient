@@ -1,4 +1,4 @@
-package org.stt.persistence.db;
+package org.stt.persistence.db.h2;
 
 import java.io.File;
 import java.io.IOException;
