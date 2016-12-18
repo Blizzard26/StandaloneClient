@@ -2,6 +2,8 @@ package org.stt.cli;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.inject.Inject;
+
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.io.IOUtils;
@@ -41,7 +43,7 @@ public class ReportPrinter {
 	private final WorkingtimeItemProvider workingtimeItemProvider;
 	private final ItemCategorizer categorizer;
 
-	public ReportPrinter(ItemReaderProvider readFrom,
+	@Inject public ReportPrinter(ItemReaderProvider readFrom,
 			Configuration configuration,
 			WorkingtimeItemProvider workingtimeItemProvider,
 			ItemCategorizer categorizer) {

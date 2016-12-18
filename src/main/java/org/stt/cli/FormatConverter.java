@@ -1,7 +1,13 @@
 package org.stt.cli;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.util.List;
+
 import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.stt.csv.importer.CsvImporter;
 import org.stt.model.TimeTrackingItem;
@@ -11,8 +17,8 @@ import org.stt.persistence.stt.STTItemReader;
 import org.stt.persistence.stt.STTItemWriter;
 import org.stt.ti.importer.TiImporter;
 
-import java.io.*;
-import java.util.List;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * Converts different supported time tracking formats. Currently these are:
@@ -23,6 +29,7 @@ public class FormatConverter {
 
 	private ItemReader from;
 	private ItemWriter to;
+	private ItemWriter defaultItemWriter;
 
 	/**
 	 * 
@@ -32,12 +39,14 @@ public class FormatConverter {
 	 *            if null, System.out is assumed
 	 * @param args
 	 */
-	public FormatConverter(List<String> args) {
+	public FormatConverter(ItemWriter itemWriter, List<String> args) {
+		this.defaultItemWriter = Preconditions.checkNotNull(itemWriter);
 		Preconditions.checkNotNull(args);
 
 		File sourceFile = null;
 		String sourceFormat = "stt";
 		File targetFile = null;
+		String targetFormat = "default";
 		int sourceFormatIndex = args.indexOf("--sourceFormat");
 		if (sourceFormatIndex != -1) {
 			args.remove(sourceFormatIndex);
@@ -50,6 +59,12 @@ public class FormatConverter {
 			sourceFile = new File(args.get(sourceIndex));
 			args.remove(sourceIndex);
 		}
+		int targetFormatIndex = args.indexOf("--targetFormat");
+		if (targetFormatIndex != -1) {
+			args.remove(targetFormatIndex);
+			targetFormat = args.get(targetFormatIndex);
+			args.remove(targetFormatIndex);
+		}
 		int targetIndex = args.indexOf("--target");
 		if (targetIndex != -1) {
 			args.remove(targetIndex);
@@ -58,18 +73,27 @@ public class FormatConverter {
 		}
 
 		from = getReaderFrom(sourceFile, sourceFormat);
-		to = getWriterFrom(targetFile);
+		to = getWriterFrom(targetFile, targetFormat);
 	}
 
-	// FIXME Use injection to get writer?
-	private ItemWriter getWriterFrom(File output) {
+	private ItemWriter getWriterFrom(File output, String targetFormat) {
 		try {
 			if (output == null) {
 				return new STTItemWriter(new OutputStreamWriter(System.out,
 						"UTF-8"));
 			}
-			return new STTItemWriter(
-					new FileWriterWithEncoding(output, "UTF-8"));
+			
+			
+			switch (targetFormat) {
+			case "stt":
+				return new STTItemWriter(
+						new FileWriterWithEncoding(output, "UTF-8"));
+			case "default":
+				return defaultItemWriter;
+			default:
+				throw new RuntimeException("unknown input format \"" + targetFormat
+						+ "\"");
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

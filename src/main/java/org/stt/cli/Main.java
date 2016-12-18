@@ -1,20 +1,9 @@
 package org.stt.cli;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,29 +15,31 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Logger;
 
+import org.stt.BaseModule;
 import org.stt.Configuration;
 import org.stt.command.Command;
 import org.stt.command.EndCurrentItemCommand;
 import org.stt.command.ResumeCommand;
 import org.stt.command.ToItemWriterCommandHandler;
+import org.stt.config.ConfigModule;
 import org.stt.model.TimeTrackingItem;
-import org.stt.persistence.BackupCreator;
 import org.stt.persistence.IOUtil;
 import org.stt.persistence.ItemPersister;
 import org.stt.persistence.ItemReader;
 import org.stt.persistence.ItemReaderProvider;
-import org.stt.persistence.PreCachingItemReaderProvider;
-import org.stt.persistence.stt.STTItemPersister;
-import org.stt.persistence.stt.STTItemReader;
+import org.stt.persistence.ItemWriter;
+import org.stt.persistence.db.h2.H2PersistenceModule;
 import org.stt.query.DNFClause;
-import org.stt.query.DefaultTimeTrackingItemQueries;
 import org.stt.query.FilteredItemReader;
 import org.stt.query.TimeTrackingItemQueries;
-import org.stt.reporting.WorkingtimeItemProvider;
-import org.stt.text.WorktimeCategorizer;
+import org.stt.text.TextModule;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import static com.google.common.base.Preconditions.*;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.google.inject.Provider;
 
 /**
@@ -57,40 +48,84 @@ import com.google.inject.Provider;
 public class Main {
 
 	private static Logger LOG = Logger.getLogger(Main.class.getName());
+	
 
-	private final Configuration configuration;
+	/*
+	 * 
+	 * CLI use (example from ti usage):
+	 * 
+	 * ti on long text containing comment //starts a new entry and inserts
+	 * comment
+	 * 
+	 * ti on other comment //sets end time to the previous item and starts the
+	 * new one
+	 * 
+	 * ti fin // sets end time of previous item
+	 */
+	public static void main(String[] args) throws IOException {
+        LOG.info("Starting injector");
+        Injector injector = Guice.createInjector(new H2PersistenceModule(), new BaseModule(),  new TextModule(), new ConfigModule());
+		
+		// apply the desired encoding for all System.out calls
+		// this is necessary if one wants to output non ASCII
+		// characters on a Windows console
+		Configuration configuration = injector.getInstance(Configuration.class);
+		System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out),
+				true, configuration.getSystemOutEncoding()));
 
-	private final File timeFile;
+		Main main = injector.getInstance(Main.class);
+		List<String> argsList = new ArrayList<>(Arrays.asList(args));
+		main.executeCommand(argsList, System.out);
 
-	private ItemPersister itemPersister;
+		// perform backup
+		//main.createNewBackupCreator(configuration).start();
+	}
+
+	//private Injector injector;
+	private Provider<ItemPersister> itemPersisterProvider;
 	private TimeTrackingItemQueries timeTrackingItemQueries;
+	private ItemReaderProvider itemReaderProvider;
+	private ReportPrinter reportPrinter;
+	private Provider<ItemWriter> itemWriterProvider;
 
-	public Main(Configuration configuration) {
-		this.configuration = checkNotNull(configuration);
+	@Inject public Main(Provider<ItemPersister> itemPersisterProvider, 
+			ItemReaderProvider itemReaderProvider,
+			Provider<ItemWriter> itemWriterProvider,
+			TimeTrackingItemQueries timeTrackingItemQueries,
+			ReportPrinter reportPrinter) {
+		this.itemPersisterProvider = checkNotNull(itemPersisterProvider);
+		this.itemReaderProvider = checkNotNull(itemReaderProvider);
+		this.itemWriterProvider = checkNotNull(itemWriterProvider);
+		this.timeTrackingItemQueries = checkNotNull(timeTrackingItemQueries);
+		this.reportPrinter = checkNotNull(reportPrinter);
+		
 
-		timeFile = configuration.getSttFile();
 	}
 
 	private void on(Collection<String> args, PrintStream printTo)
 			throws IOException {
-		String comment = Joiner.on(" ").join(args);
-
-		Optional<TimeTrackingItem> currentItem = timeTrackingItemQueries
-				.getCurrentTimeTrackingitem();
-
-		ToItemWriterCommandHandler tiw = new ToItemWriterCommandHandler(
-				itemPersister, timeTrackingItemQueries);
-		Command executeCommand = tiw.executeCommand(comment);
-		Optional<TimeTrackingItem> createdItem = executeCommand.getItem();
-
-		if (currentItem.isPresent()) {
-			StringBuilder itemString = ItemFormattingHelper
-					.prettyPrintItem(currentItem);
-			printTo.println("stopped working on " + itemString.toString());
+		try (ItemPersister itemPersister = itemPersisterProvider.get())
+		{
+			
+			String comment = Joiner.on(" ").join(args);
+	
+			Optional<TimeTrackingItem> currentItem = timeTrackingItemQueries
+					.getCurrentTimeTrackingitem();
+	
+			ToItemWriterCommandHandler tiw = new ToItemWriterCommandHandler(
+					itemPersister, timeTrackingItemQueries);
+			Command executeCommand = tiw.executeCommand(comment);
+			Optional<TimeTrackingItem> createdItem = executeCommand.getItem();
+	
+			if (currentItem.isPresent()) {
+				StringBuilder itemString = ItemFormattingHelper
+						.prettyPrintItem(currentItem);
+				printTo.println("stopped working on " + itemString.toString());
+			}
+			printTo.println("start working on "
+					+ createdItem.get().getComment().orNull());
+			tiw.close();
 		}
-		printTo.println("start working on "
-				+ createdItem.get().getComment().orNull());
-		tiw.close();
 	}
 
 	/**
@@ -115,7 +150,8 @@ public class Main {
 					}
 				});
 
-		ItemReader readFrom = createNewReaderProvider(timeFile).provideReader();
+		
+		ItemReader readFrom = itemReaderProvider.provideReader();
 
 		DNFClause searchFilter = new DNFClause();
 		searchFilter.withCommentContains(Joiner.on(" ")
@@ -135,33 +171,25 @@ public class Main {
 	}
 
 	private void report(List<String> args, PrintStream printTo) {
-		File source = timeFile;
-		int sourceIndex = args.indexOf("--source");
-		if (sourceIndex != -1) {
-			args.remove(sourceIndex);
-			String sourceParameter = args.get(sourceIndex);
-			if (sourceParameter.equals("-")) {
-				source = null;
-			} else {
-				source = new File(sourceParameter);
-			}
-			args.remove(sourceIndex);
-		}
-
-		createNewReportPrinter(source).report(args, printTo);
+		reportPrinter.report(args, printTo);
 	}
 
 	private void fin(Collection<String> args, PrintStream printTo)
 			throws IOException {
-		try (ToItemWriterCommandHandler tiw = new ToItemWriterCommandHandler(
-				itemPersister, timeTrackingItemQueries)) {
-			Optional<TimeTrackingItem> currentItem = timeTrackingItemQueries
-					.getCurrentTimeTrackingitem();
+		
+		try (ItemPersister itemPersister = itemPersisterProvider.get())
+		{
 			
-			Command executeCommand = tiw
-							.executeCommand(ToItemWriterCommandHandler.COMMAND_FIN
-									+ " " + Joiner.on(" ").join(args));
-			prettyPrintExecutedCommand(printTo, currentItem, executeCommand);
+			try (ToItemWriterCommandHandler tiw = new ToItemWriterCommandHandler(
+					itemPersister, timeTrackingItemQueries)) {
+				Optional<TimeTrackingItem> currentItem = timeTrackingItemQueries
+						.getCurrentTimeTrackingitem();
+				
+				Command executeCommand = tiw
+								.executeCommand(ToItemWriterCommandHandler.COMMAND_FIN
+										+ " " + Joiner.on(" ").join(args));
+				prettyPrintExecutedCommand(printTo, currentItem, executeCommand);
+			}
 		}
 	}
 
@@ -189,49 +217,14 @@ public class Main {
 		}
 	}
 
-	/*
-	 * 
-	 * CLI use (example from ti usage):
-	 * 
-	 * ti on long text containing comment //starts a new entry and inserts
-	 * comment
-	 * 
-	 * ti on other comment //sets end time to the previous item and starts the
-	 * new one
-	 * 
-	 * ti fin // sets end time of previous item
-	 */
-	public static void main(String[] args) throws IOException {
-		// apply the desired encoding for all System.out calls
-		// this is necessary if one wants to output non ASCII
-		// characters on a Windows console
-		Configuration configuration = new Configuration();
-		System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out),
-				true, configuration.getSystemOutEncoding()));
-
-		Main main = new Main(configuration);
-		List<String> argsList = new ArrayList<>(Arrays.asList(args));
-		main.executeCommand(argsList, System.out);
-
-		// perform backup
-		main.createNewBackupCreator(configuration).start();
-	}
 
 	void executeCommand(List<String> args, PrintStream printTo) {
 		if (args.size() == 0) {
 			usage(printTo);
 			return;
 		}
-
-		// FIXME: Use injection to get item persister
-		try (STTItemPersister itemPersister = new STTItemPersister(
-				createReaderProvider(), createWriterProvider())) {
-
-			DefaultTimeTrackingItemQueries searcher = createNewSearcher();
-
-			this.itemPersister = itemPersister;
-			timeTrackingItemQueries = searcher;
-
+		
+		try {
 			String mainOperator = args.remove(0);
 			if (mainOperator.startsWith("o")) {
 				// on
@@ -247,7 +240,7 @@ public class Main {
 				search(args, printTo);
 			} else if (mainOperator.startsWith("c")) {
 				// convert
-				new FormatConverter(args).convert();
+				new FormatConverter(itemWriterProvider.get(), args).convert();
 			} else {
 				usage(printTo);
 			}
@@ -263,79 +256,13 @@ public class Main {
 		String usage = "Usage:\n"
 				+ "on comment\tto start working on something\n"
 				+ "report [X days] [searchstring]\tto display a report\n"
-				+ "fin\t\tto stop working\n"
+				+ "fin [and resume]\t\tto stop working\n"
 				+ "search [searchstring]\tto get a list of all comments of items matching the given search string";
 
 		printTo.println(usage);
 	}
 
-	private DefaultTimeTrackingItemQueries createNewSearcher() {
-		return new DefaultTimeTrackingItemQueries(createNewReaderProvider(timeFile));
-	}
-
-	private ReportPrinter createNewReportPrinter(File source) {
-		ItemReaderProvider provider = createNewReaderProvider(source);
-		return new ReportPrinter(provider, configuration,
-				new WorkingtimeItemProvider(configuration),
-				new WorktimeCategorizer(configuration));
-	}
-
-	/**
-	 * creates a new ItemReaderProvider for timeFile
-	 */
-	// FIXME User injection to get reader
-	private ItemReaderProvider createNewReaderProvider(final File source) {
-        ItemReaderProvider provider = new ItemReaderProvider() {
-            @Override
-            public ItemReader provideReader() {
-                try {
-                    InputStream inStream;
-                    if (source == null) {
-                        inStream = System.in;
-                    } else {
-                        inStream = new FileInputStream(source);
-                    }
-                    InputStreamReader in = new InputStreamReader(inStream, "UTF-8");
-                    return new STTItemReader(in);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
-        return new PreCachingItemReaderProvider(provider);
-    }
-
-	// FIXME: Use injection to get reader
-	private Provider<Reader> createReaderProvider() {
-		return new Provider<Reader>() {
-			@Override
-			public Reader get() {
-				try {
-					return new InputStreamReader(new FileInputStream(timeFile),
-							"UTF-8");
-				} catch (UnsupportedEncodingException | FileNotFoundException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		};
-	}
-
-	// FIXME: Use injection to get reader
-	private Provider<Writer> createWriterProvider() {
-		return new Provider<Writer>() {
-			@Override
-			public Writer get() {
-				try {
-					return new OutputStreamWriter(
-                            new FileOutputStream(timeFile, false), "UTF-8");
-				} catch (UnsupportedEncodingException | FileNotFoundException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		};
-	}
-
-	private BackupCreator createNewBackupCreator(Configuration config) {
-		return new BackupCreator(config);
-	}
+//	private BackupCreator createNewBackupCreator(Configuration config) {
+//		return new BackupCreator(config);
+//	}
 }

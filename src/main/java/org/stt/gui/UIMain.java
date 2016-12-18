@@ -1,20 +1,20 @@
 package org.stt.gui;
 
-import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Singleton;
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.stage.Stage;
+import java.util.Collections;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.stt.BaseModule;
 import org.stt.I18NModule;
 import org.stt.Service;
-import org.stt.config.YamlConfigService;
 import org.stt.config.ConfigModule;
+import org.stt.config.YamlConfigService;
 import org.stt.connector.jira.JiraConnector;
-import org.stt.text.TextModule;
 import org.stt.event.EventBusModule;
 import org.stt.event.FileChangeListenerService;
 import org.stt.event.ItemLogService;
@@ -28,18 +28,18 @@ import org.stt.gui.jfx.WorktimePaneBuilder;
 import org.stt.persistence.BackupCreator;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.db.h2.H2PersistenceModule;
-import org.stt.persistence.stt.STTPersistenceModule;
+import org.stt.text.TextModule;
 import org.stt.time.TimeUtilModule;
 
-import java.awt.SystemTray;
-import java.util.Collections;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Singleton;
+
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.stage.Stage;
 
 @Singleton
 public class UIMain extends Application {
