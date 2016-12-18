@@ -10,7 +10,7 @@ import com.google.common.base.Optional;
 
 public interface DBStorage {
 
-	List<TimeTrackingItem> getTimeTrackingItemsInRange(DateTime start, Optional<DateTime> end) throws SQLException;
+	List<TimeTrackingItem> getItemsInRange(DateTime start, Optional<DateTime> end) throws SQLException;
 
 	List<TimeTrackingItem> getAllItems() throws SQLException;
 

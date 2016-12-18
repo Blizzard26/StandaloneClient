@@ -119,7 +119,7 @@ public class H2DBStorage implements DBStorage {
 	 * @see org.stt.persistence.db.h2.DBStorage#getTimeTrackingItemsInRange(org.joda.time.DateTime, com.google.common.base.Optional)
 	 */
 	@Override
-	public List<TimeTrackingItem> getTimeTrackingItemsInRange(DateTime start, Optional<DateTime> end) throws SQLException
+	public List<TimeTrackingItem> getItemsInRange(DateTime start, Optional<DateTime> end) throws SQLException
 	{
 		try (DSLContext context = DSL.using(connectionProvider, SQLDialect.H2))
 		{

@@ -33,7 +33,7 @@ public class DBItemPersister implements ItemPersister {
 		try {
 			DateTime start = item.getStart();
 			Optional<DateTime> itemEnd = item.getEnd();
-			List<TimeTrackingItem> overlappingItems = this.dbStorage.getTimeTrackingItemsInRange(start, itemEnd);
+			List<TimeTrackingItem> overlappingItems = this.dbStorage.getItemsInRange(start, itemEnd);
 			
 			for (TimeTrackingItem other : overlappingItems) {
 				DateTime otherStart = other.getStart();
