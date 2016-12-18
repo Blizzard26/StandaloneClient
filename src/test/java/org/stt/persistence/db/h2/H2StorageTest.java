@@ -1,4 +1,4 @@
-package org.stt.persistence.db;
+package org.stt.persistence.db.h2;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
@@ -23,19 +23,22 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.DBConnectionProvider;
+import org.stt.persistence.db.DBUtil;
 import org.stt.persistence.db.h2.H2Configuration;
 import org.stt.persistence.db.h2.H2ConnectionProvider;
+import org.stt.persistence.db.h2.H2DBStorage;
 
 import com.google.common.base.Optional;
 
-public class DBStorageTest {
+public class H2StorageTest {
 	
 	private DBConnectionProvider connectionProvider;
 	
 	@Mock
 	H2Configuration configuration;
 
-	private DBStorage sut;
+	private H2DBStorage sut;
 
 	private Connection connection;
 
@@ -51,7 +54,7 @@ public class DBStorageTest {
 		this.connectionProvider = new H2ConnectionProvider(configuration);
 		connection = connectionProvider.getConnection();
 		
-		this.sut = new DBStorage(connectionProvider);
+		this.sut = new H2DBStorage(connectionProvider);
 	}
 
 	@After
@@ -421,29 +424,29 @@ public class DBStorageTest {
 			try (Statement statement = connection.createStatement())
 			{
 				
-				try (ResultSet resultSet = statement.executeQuery(DBStorage.SELECT_QUERY))
+				try (ResultSet resultSet = statement.executeQuery(H2DBStorage.SELECT_QUERY))
 				{
 					for (TimeTrackingItem item : items)
 					{
 						assertThat("Missing item: " + item, resultSet.next(), is(true));
-						assertThat(resultSet.getTimestamp(DBStorage.INDEX_START), is(DBUtil.transform(item.getStart())));
+						assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_START), is(DBUtil.transform(item.getStart())));
 						if (item.getEnd().isPresent())
 						{
-							assertThat(resultSet.getTimestamp(DBStorage.INDEX_END), is(DBUtil.transform(item.getEnd().get())));
+							assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_END), is(DBUtil.transform(item.getEnd().get())));
 						}
 						else
 						{
-							resultSet.getTimestamp(DBStorage.INDEX_END);
+							resultSet.getTimestamp(H2DBStorage.INDEX_END);
 							assertThat(resultSet.wasNull(), is(true));
 						}
 						
 						if (item.getComment().isPresent())
 						{
-							assertThat(resultSet.getString(DBStorage.INDEX_COMMENT), is(item.getComment().get()));
+							assertThat(resultSet.getString(H2DBStorage.INDEX_COMMENT), is(item.getComment().get()));
 						}
 						else
 						{
-							resultSet.getString(DBStorage.INDEX_COMMENT);
+							resultSet.getString(H2DBStorage.INDEX_COMMENT);
 							assertThat(resultSet.wasNull(), is(true));
 						}
 					}

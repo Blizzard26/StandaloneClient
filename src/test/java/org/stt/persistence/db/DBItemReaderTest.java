@@ -20,6 +20,7 @@ import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.db.h2.H2Configuration;
 import org.stt.persistence.db.h2.H2ConnectionProvider;
+import org.stt.persistence.db.h2.H2DBStorage;
 
 import com.google.common.base.Optional;
 
@@ -30,7 +31,7 @@ public class DBItemReaderTest {
 	
 	@Mock
 	H2Configuration configuration;
-	private DBStorage dbStorage;
+	private H2DBStorage dbStorage;
 	private Connection connection;
 	
 	@Before
@@ -45,7 +46,7 @@ public class DBItemReaderTest {
 		this.connectionProvider = new H2ConnectionProvider(configuration);
 		connection = connectionProvider.getConnection();
 		
-		this.dbStorage = new DBStorage(connectionProvider);
+		this.dbStorage = new H2DBStorage(connectionProvider);
 		
 		sut = new DBItemReader(dbStorage);
 	}
@@ -111,23 +112,23 @@ public class DBItemReaderTest {
 	private void givenItem(DateTime startDate, DateTime endDate, String comment)
 			throws ClassNotFoundException, SQLException {
 
-		try (PreparedStatement preparedStatement = connection.prepareStatement(DBStorage.INSERT_STATEMENT))
+		try (PreparedStatement preparedStatement = connection.prepareStatement(H2DBStorage.INSERT_STATEMENT))
 		{
 
-			preparedStatement.setTimestamp(DBStorage.INDEX_START, DBUtil.transform(startDate));
+			preparedStatement.setTimestamp(H2DBStorage.INDEX_START, DBUtil.transform(startDate));
 			if (endDate != null) {
-				preparedStatement.setTimestamp(DBStorage.INDEX_END, DBUtil.transform(endDate));
+				preparedStatement.setTimestamp(H2DBStorage.INDEX_END, DBUtil.transform(endDate));
 			} else {
-				preparedStatement.setNull(DBStorage.INDEX_END, java.sql.Types.BIGINT);
+				preparedStatement.setNull(H2DBStorage.INDEX_END, java.sql.Types.BIGINT);
 			}
 	
 			if (comment != null) {
-				preparedStatement.setString(DBStorage.INDEX_COMMENT, comment);
+				preparedStatement.setString(H2DBStorage.INDEX_COMMENT, comment);
 			} else {
-				preparedStatement.setNull(DBStorage.INDEX_COMMENT, java.sql.Types.VARCHAR);
+				preparedStatement.setNull(H2DBStorage.INDEX_COMMENT, java.sql.Types.VARCHAR);
 			}
 	
-			preparedStatement.setNull(DBStorage.INDEX_LOGGED, java.sql.Types.INTEGER);
+			preparedStatement.setNull(H2DBStorage.INDEX_LOGGED, java.sql.Types.INTEGER);
 			preparedStatement.executeUpdate();
 		}
 		

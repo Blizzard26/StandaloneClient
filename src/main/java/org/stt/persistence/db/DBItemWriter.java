@@ -5,6 +5,7 @@ import java.sql.SQLException;
 
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemWriter;
+import org.stt.persistence.db.h2.H2DBStorage;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
@@ -12,10 +13,10 @@ import com.google.inject.Inject;
 public class DBItemWriter implements ItemWriter {
 	
 	
-	private DBStorage dbStorage;
+	private H2DBStorage dbStorage;
 
 	@Inject
-	public DBItemWriter(DBStorage dbStorage) {
+	public DBItemWriter(H2DBStorage dbStorage) {
 		this.dbStorage = dbStorage;
 	}
 

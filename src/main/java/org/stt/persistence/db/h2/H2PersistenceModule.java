@@ -21,7 +21,6 @@ import org.stt.persistence.db.DBConnectionProvider;
 import org.stt.persistence.db.DBItemPersister;
 import org.stt.persistence.db.DBItemReader;
 import org.stt.persistence.db.DBItemWriter;
-import org.stt.persistence.db.DBStorage;
 import org.stt.persistence.stt.STTFile;
 import org.stt.query.DefaultTimeTrackingItemQueries;
 import org.stt.query.TimeTrackingItemQueries;
@@ -57,9 +56,9 @@ public class H2PersistenceModule extends AbstractModule {
 	}
 	
 	@Provides
-	@Inject public DBStorage getDBStorage(DBConnectionProvider connectionProvider) throws SQLException
+	@Inject public H2DBStorage getDBStorage(DBConnectionProvider connectionProvider) throws SQLException
 	{
-		return new DBStorage(connectionProvider);
+		return new H2DBStorage(connectionProvider);
 	}
 
     @Provides @Named("uncached")

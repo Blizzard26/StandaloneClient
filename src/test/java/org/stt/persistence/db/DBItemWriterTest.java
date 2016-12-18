@@ -22,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.db.h2.H2Configuration;
 import org.stt.persistence.db.h2.H2ConnectionProvider;
+import org.stt.persistence.db.h2.H2DBStorage;
 
 
 public class DBItemWriterTest {
@@ -31,7 +32,7 @@ public class DBItemWriterTest {
 	
 	@Mock
 	H2Configuration configuration;
-	private DBStorage dbStorage;
+	private H2DBStorage dbStorage;
 	private Connection connection;
 	
 	@Before
@@ -46,7 +47,7 @@ public class DBItemWriterTest {
 		this.connectionProvider = new H2ConnectionProvider(configuration);
 		connection = connectionProvider.getConnection();
 		
-		this.dbStorage = new DBStorage(connectionProvider);
+		this.dbStorage = new H2DBStorage(connectionProvider);
 		
 		sut = new DBItemWriter(dbStorage);
 	}
@@ -70,13 +71,13 @@ public class DBItemWriterTest {
 		
 		// THEN
 		try (Statement statement = connection.createStatement()) {
-			try (ResultSet resultSet = statement.executeQuery(DBStorage.SELECT_QUERY))
+			try (ResultSet resultSet = statement.executeQuery(H2DBStorage.SELECT_QUERY))
 			{
 				assertThat(resultSet.next(), is(true));
-				assertThat(resultSet.getTimestamp(DBStorage.INDEX_START), is(new Timestamp(7500000L)));
-				assertThat(resultSet.getTimestamp(DBStorage.INDEX_END), nullValue());
+				assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_START), is(new Timestamp(7500000L)));
+				assertThat(resultSet.getTimestamp(H2DBStorage.INDEX_END), nullValue());
 				assertThat(resultSet.wasNull(), is(true));
-				assertThat(resultSet.getString(DBStorage.INDEX_COMMENT), is("Test"));
+				assertThat(resultSet.getString(H2DBStorage.INDEX_COMMENT), is("Test"));
 				
 				assertThat(resultSet.next(), is(false));
 			}

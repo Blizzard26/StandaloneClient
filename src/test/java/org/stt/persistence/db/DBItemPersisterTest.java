@@ -24,6 +24,7 @@ import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.db.h2.H2Configuration;
 import org.stt.persistence.db.h2.H2ConnectionProvider;
+import org.stt.persistence.db.h2.H2DBStorage;
 
 
 @RunWith(Theories.class)
@@ -39,7 +40,7 @@ public class DBItemPersisterTest {
 	@Mock
 	H2Configuration configuration;
 
-	private DBStorage dbStorage;
+	private H2DBStorage dbStorage;
 
 	private Connection connection;
 
@@ -54,7 +55,7 @@ public class DBItemPersisterTest {
 		this.connectionProvider = new H2ConnectionProvider(configuration);
 		connection = connectionProvider.getConnection();
 
-		this.dbStorage = new DBStorage(connectionProvider);
+		this.dbStorage = new H2DBStorage(connectionProvider);
 
 		sut = new DBItemPersister(dbStorage);
 	}

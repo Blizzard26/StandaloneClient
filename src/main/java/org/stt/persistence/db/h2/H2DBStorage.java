@@ -1,4 +1,4 @@
-package org.stt.persistence.db;
+package org.stt.persistence.db.h2;
 
 import static org.stt.persistence.db.DBUtil.transform;
 
@@ -15,13 +15,15 @@ import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
 import org.stt.model.TimeTrackingItem;
+import org.stt.persistence.db.DBConnectionProvider;
+import org.stt.persistence.db.PreparedStatementBuilder;
 
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 
-public class DBStorage {
+public class H2DBStorage {
 	
-	protected static final Logger LOG = Logger.getLogger(DBStorage.class.getName());
+	protected static final Logger LOG = Logger.getLogger(H2DBStorage.class.getName());
 	
 	public static final int INDEX_LOGGED = 4;
 	public static final int INDEX_COMMENT = 3;
@@ -52,7 +54,7 @@ public class DBStorage {
 	private DBConnectionProvider connectionProvider;
 	private boolean dbInitialized = false;
 
-	@Inject public DBStorage(DBConnectionProvider connectionProvider) throws SQLException
+	@Inject public H2DBStorage(DBConnectionProvider connectionProvider) throws SQLException
 	{
 		this.connectionProvider = connectionProvider;	
 		init();
