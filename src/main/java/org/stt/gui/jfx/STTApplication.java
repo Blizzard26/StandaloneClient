@@ -314,7 +314,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     public void continueItem(TimeTrackingItem item) {
         LOG.severe("Continuing item: " + item);
         commandParser.resumeItemCommand(item).execute();
-        viewAdapter.shutdown();
+        viewAdapter.commandFinished();
     }
 
     @Override
@@ -439,15 +439,8 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                         if (currentCommand.getValue().length() > 0)
                         {
                         	currentCommand.setValue("");
-                        }
-                        else if (configuration.getMinimizedToTray())
-                    	{
-                    		minimizeToTray();
-                    	}
-                    	else
-                    	{
-                    		shutdown();
-                    	}
+                        } else
+							commandFinished();
                         
                         
                     }
@@ -638,7 +631,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         @FXML
         private void done() {
             executeCommand();
-            if (configuration.getMinimizedToTray())
+            commandFinished();
+        }
+
+		private void commandFinished() {
+			if (configuration.getMinimizedToTray())
             {
             	minimizeToTray();
             }
@@ -646,7 +643,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
             {
             	shutdown();
             }
-        }
+		}
 
 		private void minimizeToTray() {
 			stage.hide();
@@ -669,7 +666,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         @FXML
         private void fin() {
             commandParser.endCurrentItemCommand(new DateTime()).or(NothingCommand.INSTANCE).execute();
-            shutdown();
+            commandFinished();
         }
 
         @FXML
