@@ -63,7 +63,7 @@
 
 # H2 DB Settings
 # DB Name / DB Storage Location
-h2_db=$HOME$/stt.h2.db
+h2_db=$HOME$/stt
 # DB Username
 h2_username=h2
 # DB Password

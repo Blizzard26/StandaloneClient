@@ -26,8 +26,8 @@ import org.stt.gui.jfx.JFXModule;
 import org.stt.gui.jfx.STTApplication;
 import org.stt.gui.jfx.WorktimePaneBuilder;
 import org.stt.persistence.PreCachingItemReaderProvider;
+import org.stt.persistence.db.h2.H2BackupCreator;
 import org.stt.persistence.db.h2.H2PersistenceModule;
-import org.stt.persistence.stt.STTBackupCreator;
 import org.stt.text.TextModule;
 import org.stt.time.TimeUtilModule;
 
@@ -66,8 +66,12 @@ public class UIMain extends Application {
         LOG.info("Starting STT in UI mode");
 
         LOG.info("Starting injector");
-        final Injector injector = Guice.createInjector(new TimeUtilModule(), new H2PersistenceModule(), new I18NModule(), new EventBusModule(), new AchievementModule(), new TextModule(),
-                new JFXModule(), new BaseModule(), new ConfigModule());
+        final Injector injector = Guice.createInjector(
+        		new TimeUtilModule(), new H2PersistenceModule(), 
+        		new I18NModule(), new EventBusModule(), 
+        		new AchievementModule(), new TextModule(),
+                new JFXModule(), new BaseModule(), 
+                new ConfigModule());
 
         LOG.info("Setting up event bus");
         eventBus = injector.getInstance(EventBus.class);
@@ -86,7 +90,7 @@ public class UIMain extends Application {
         }, 0, 1000);
 
         startService(injector, YamlConfigService.class);
-        startService(injector, STTBackupCreator.class);
+        startService(injector, H2BackupCreator.class);
         startServiceInBackground(injector, AchievementService.class);
         startService(injector, ItemLogService.class);
         startServiceInBackground(injector, FileChangeListenerService.class);

@@ -35,7 +35,7 @@ public class BackupCreatorTest {
 	private File currentTempFolder;
 	private File currentSttFile;
 
-	private STTBackupCreator sut;
+	private BackupCreator sut;
 
 	@Before
 	public void setup() throws IOException {

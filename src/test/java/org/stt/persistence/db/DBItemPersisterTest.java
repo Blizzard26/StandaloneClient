@@ -40,6 +40,7 @@ public class DBItemPersisterTest {
 	@Mock
 	H2Configuration configuration;
 
+	// TODO Mock DBStorage
 	private DBStorage dbStorage;
 
 	private Connection connection;
