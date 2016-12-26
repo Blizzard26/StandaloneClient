@@ -77,15 +77,14 @@ public class FormatConverter {
 	}
 
 	private ItemWriter getWriterFrom(File output, String targetFormat) {
-		try {
-			if (output == null) {
-				return new STTItemWriter(new OutputStreamWriter(System.out,
-						"UTF-8"));
-			}
-			
-			
+		try {			
 			switch (targetFormat) {
 			case "stt":
+				if (output == null) {
+					return new STTItemWriter(new OutputStreamWriter(System.out,
+							"UTF-8"));
+				}
+				
 				return new STTItemWriter(
 						new FileWriterWithEncoding(output, "UTF-8"));
 			case "default":
@@ -125,12 +124,16 @@ public class FormatConverter {
 	}
 
 	public void convert() throws IOException {
+		System.out.println("Converting...");
+		int count = 0;
 		Optional<TimeTrackingItem> current = null;
 		while ((current = from.read()).isPresent()) {
 			to.write(current.get());
+			++count;
 		}
 
 		from.close();
 		to.close();
+		System.out.println(count+" items converted.");
 	}
 }
