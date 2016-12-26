@@ -60,3 +60,11 @@
 # Split Item Grouper setting
 # Regular expression used for splitting items into groups
 #splitItemGrouperRegularExpression="\\s(:|\\||-)\\s"
+
+# H2 DB Settings
+# DB Name / DB Storage Location
+h2_db=$HOME$/$HOME$/stt.h2.db
+# DB Username
+h2_username=h2
+# DB Password
+h2_password=password

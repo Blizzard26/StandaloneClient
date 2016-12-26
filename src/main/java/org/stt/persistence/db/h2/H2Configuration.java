@@ -16,7 +16,7 @@ public class H2Configuration {
 	}
 
 	public String getDatabase() {
-        String sttFileString = mainConfiguration.getPropertiesReplaced("h2_db", "$HOME$/stt.db");
+        String sttFileString = mainConfiguration.getPropertiesReplaced("h2_db", "$HOME$/stt.h2.db");
         File sttFile = new File(sttFileString);
         try {
             sttFile.createNewFile();
