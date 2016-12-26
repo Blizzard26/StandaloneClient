@@ -254,10 +254,15 @@ public class Main {
 	 */
 	private static void usage(PrintStream printTo) {
 		String usage = "Usage:\n"
-				+ "on comment\tto start working on something\n"
+				+ "on comment\t\t\tto start working on something\n"
 				+ "report [X days] [searchstring]\tto display a report\n"
 				+ "fin [and resume]\t\tto stop working\n"
-				+ "search [searchstring]\tto get a list of all comments of items matching the given search string";
+				+ "search [searchstring]\t\tto get a list of all comments of items matching the given search string\n"
+				+ "convert [--sourceFormat stt|ti|csv] [--source sourceFile] [--targetFormat default|stt] [--target targetFile]\tConvert between different time tracking formats\n"
+				+ "\t\t\t\t--sourceFormat (optional; Default: stt): one of stt, ti, csv \n"
+				+ "\t\t\t\t--sourceFile (optional; Default: StdIn): Input file\n"
+				+ "\t\t\t\t--targetFormat (optional; Default: default): Target format, default will use application default\n"
+				+ "\t\t\t\t--target (optional; Default: StdOut/default): File to write to; if target format is default, application default will be used and target is ignored\n";
 
 		printTo.println(usage);
 	}
