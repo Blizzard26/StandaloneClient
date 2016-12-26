@@ -1,15 +1,19 @@
 package org.stt.persistence.db;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
-import static org.mockito.BDDMockito.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
 
-import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assume;
@@ -24,7 +28,8 @@ import org.mockito.MockitoAnnotations;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.db.h2.H2Configuration;
 import org.stt.persistence.db.h2.H2ConnectionProvider;
-import org.stt.persistence.db.h2.H2DBStorage;
+
+import com.google.common.base.Optional;
 
 
 @RunWith(Theories.class)
@@ -40,7 +45,7 @@ public class DBItemPersisterTest {
 	@Mock
 	H2Configuration configuration;
 
-	// TODO Mock DBStorage
+	@Mock
 	private DBStorage dbStorage;
 
 	private Connection connection;
@@ -56,7 +61,7 @@ public class DBItemPersisterTest {
 		this.connectionProvider = new H2ConnectionProvider(configuration);
 		connection = connectionProvider.acquire();
 
-		this.dbStorage = new H2DBStorage(connectionProvider);
+		//this.dbStorage = new H2DBStorage(connectionProvider);
 
 		sut = new DBItemPersister(dbStorage);
 	}
@@ -78,37 +83,51 @@ public class DBItemPersisterTest {
 
 		// THEN
 		// Exception expected
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
 	public void writeCommentSucceeds() throws IOException, SQLException {
 
 		// GIVEN
-		TimeTrackingItem theItem = new TimeTrackingItem("the comment", DateTime.now());
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.emptyList());
+		
+		DateTime startDate = DateTime.now();
+		TimeTrackingItem theItem = new TimeTrackingItem("the comment", startDate);
 
 		// WHEN
 		sut.insert(theItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(theItem ));
+		verify(dbStorage).getItemsInRange(Optional.of(startDate), Optional.absent());
+		verify(dbStorage).insertItemInDB(theItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
 	public void writeStartSucceeds() throws IOException, SQLException {
 
 		// GIVEN
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.emptyList());
+		
 		DateTime theTime = new DateTime(2011, 10, 12, 13, 14, 15);
 		TimeTrackingItem theItem = new TimeTrackingItem(null, theTime);
-
+		
 		// WHEN
 		sut.insert(theItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(theItem));
+		verify(dbStorage).getItemsInRange(Optional.of(theTime), Optional.absent());
+		verify(dbStorage).insertItemInDB(theItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
 	public void writeEndSucceeds() throws IOException, SQLException {
 
 		// GIVEN
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.emptyList());
+		
 		DateTime start = new DateTime(2011, 10, 12, 13, 14, 15);
 		DateTime end = new DateTime(2012, 10, 12, 13, 14, 15);
 
@@ -116,41 +135,44 @@ public class DBItemPersisterTest {
 
 		// WHEN
 		sut.insert(theItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(theItem));
+		verify(dbStorage).getItemsInRange(Optional.of(start), Optional.of(end));
+		verify(dbStorage).insertItemInDB(theItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
 	public void writeCompleteEntrySucceeds() throws IOException, SQLException {
 
 		// GIVEN
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.emptyList());
+		
 		DateTime start = new DateTime(2011, 10, 12, 13, 14, 15);
-
 		DateTime end = new DateTime(2012, 10, 12, 13, 14, 15);
 		TimeTrackingItem theItem = new TimeTrackingItem("the comment", start, end);
 
 		// WHEN
 		sut.insert(theItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(theItem));
+		verify(dbStorage).getItemsInRange(Optional.of(start), Optional.of(end));
+		verify(dbStorage).insertItemInDB(theItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
 	public void itemsCanBeDeleted() throws IOException, SQLException {
 
 		// GIVEN
-		TimeTrackingItem theItem = new TimeTrackingItem("testitem", new DateTime(2011, 10, 10, 11, 12, 13));
-		TimeTrackingItem theItem2 = new TimeTrackingItem("testitem", new DateTime(2014, 10, 10, 11, 12, 13));
-		sut.insert(theItem);
-		sut.insert(theItem2);
+		TimeTrackingItem theItem = new TimeTrackingItem("testitem", new DateTime(2014, 10, 10, 11, 12, 13));
 
-		// when
-		sut.delete(theItem2);
+		// WHEN
+		sut.delete(theItem);
 
-		// then
-		TimeTrackingItem expectedItem = new TimeTrackingItem("testitem", new DateTime(2011, 10, 10, 11, 12, 13),
-				new DateTime(2014, 10, 10, 11, 12, 13));
-		assertThat(dbStorage.getAllItems(), Matchers.contains( expectedItem ));
+		// THEN
+		verify(dbStorage).deleteItemInDB(theItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
@@ -159,12 +181,15 @@ public class DBItemPersisterTest {
 		// GIVEN
 		TimeTrackingItem theItem = new TimeTrackingItem("testitem", new DateTime(2011, 10, 10, 11, 12, 13));
 		TimeTrackingItem theItem2 = new TimeTrackingItem("testitem", DateTime.now());
-		sut.insert(theItem2);
+		//sut.insert(theItem2);
 
-		// when
+		// WHEN
 		sut.replace(theItem2, theItem);
-		// then
-		assertThat(dbStorage.getAllItems(), Matchers.contains(theItem));
+		
+		// THEN
+		verify(dbStorage).deleteItemInDB(theItem2);
+		verify(dbStorage).insertItemInDB(theItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Theory
@@ -174,14 +199,19 @@ public class DBItemPersisterTest {
 		assumeFalse(startOfNewItem.isAfter(startOfExistingItem));
 		// GIVEN
 		TimeTrackingItem existingItem = new TimeTrackingItem("testitem", startOfExistingItem);
-		sut.insert(existingItem);
+		
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.singletonList(existingItem));
 
 		TimeTrackingItem newItem = new TimeTrackingItem("testitem2", startOfExistingItem);
 
 		// WHEN
 		sut.insert(newItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains( newItem ));
+		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.absent());
+		verify(dbStorage).deleteItemInDB(existingItem);
+		verify(dbStorage).insertItemInDB(newItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
@@ -189,7 +219,8 @@ public class DBItemPersisterTest {
 		// GIVEN
 		DateTime startOfExistingItem = new DateTime(2011, 10, 10, 11, 12, 13);
 		TimeTrackingItem existingItem = new TimeTrackingItem("testitem", startOfExistingItem);
-		sut.insert(existingItem);
+		
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.singletonList(existingItem));
 
 		DateTime startOfNewItem = new DateTime(2011, 10, 10, 11, 12, 14);
 		TimeTrackingItem newItem = new TimeTrackingItem("testitem2", startOfNewItem);
@@ -198,29 +229,37 @@ public class DBItemPersisterTest {
 		// |------
 		// |---
 		sut.insert(newItem);
-		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains( 
-				new TimeTrackingItem("testitem", startOfExistingItem, startOfNewItem), 
-				newItem ));
 
+		// THEN
+		verify(dbStorage).getItemsInRange(Optional.of(startOfNewItem), Optional.absent());
+		verify(dbStorage).deleteItemInDB(existingItem);
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("testitem", startOfExistingItem, startOfNewItem));
+		verify(dbStorage).insertItemInDB(newItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Theory
 	public void shouldRemoveCoveredTimeIntervalsIfCoveredByNewItem(DateTime startOfNewItem) throws IOException, SQLException {
+		// FIXME parameter not used
 		DateTime startOfExistingItem = new DateTime(2011, 10, 10, 11, 12, 13);
 		DateTime endOfNewItem = new DateTime(2020, 10, 10, 11, 12, 13);
 
 		Assume.assumeFalse(startOfNewItem.isAfter(startOfExistingItem));
 		// GIVEN
 		TimeTrackingItem existingItem = new TimeTrackingItem("existing item", startOfExistingItem, endOfNewItem);
-		sut.insert(existingItem);
+		
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.singletonList(existingItem));
 
 		TimeTrackingItem newItem = new TimeTrackingItem("new item", startOfExistingItem, endOfNewItem);
 
 		// WHEN
 		sut.insert(newItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains( newItem ));
+		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.of(endOfNewItem));
+		verify(dbStorage).deleteItemInDB(existingItem);
+		verify(dbStorage).insertItemInDB(newItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Theory
@@ -233,7 +272,8 @@ public class DBItemPersisterTest {
 		Assume.assumeFalse(startOfNewItem.isAfter(startOfExistingItem));
 		// GIVEN
 		TimeTrackingItem existingItem = new TimeTrackingItem("existing item", startOfExistingItem, endOfExistingItem);
-		sut.insert(existingItem);
+		
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.singletonList(existingItem));
 
 		TimeTrackingItem newItem = new TimeTrackingItem("new item", startOfExistingItem, endOfNewItem);
 
@@ -242,7 +282,12 @@ public class DBItemPersisterTest {
 
 		// THEN
 		TimeTrackingItem splitItem = new TimeTrackingItem("existing item", endOfNewItem, endOfExistingItem);
-		assertThat(dbStorage.getAllItems(), Matchers.contains( newItem, splitItem ));
+		
+		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.of(endOfNewItem));
+		verify(dbStorage).deleteItemInDB(existingItem);
+		verify(dbStorage).insertItemInDB(splitItem);
+		verify(dbStorage).insertItemInDB(newItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Theory
@@ -254,55 +299,75 @@ public class DBItemPersisterTest {
 		Assume.assumeFalse(startOfNewItem.isAfter(startOfExistingItem));
 		// GIVEN
 		TimeTrackingItem existingItem = new TimeTrackingItem("existing item", startOfExistingItem);
-		sut.insert(existingItem);
+		
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.singletonList(existingItem));
 
 		TimeTrackingItem newItem = new TimeTrackingItem("new item", startOfExistingItem, endOfNewItem);
 
 		// WHEN
 		sut.insert(newItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(new TimeTrackingItem("new item", startOfExistingItem, endOfNewItem), 
-				new TimeTrackingItem("existing item", endOfNewItem) ));
+		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.of(endOfNewItem));
+		verify(dbStorage).deleteItemInDB(existingItem);
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("existing item", endOfNewItem));
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("new item", startOfExistingItem, endOfNewItem));
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
 	public void shouldChangeEndOfIntervalBeforeRemoveOverlappingIntervalAndChangeStartOfIntervalAfter()
 			throws IOException, SQLException {
 		// GIVEN
-		TimeTrackingItem itemBeforeBefore = new TimeTrackingItem("Item before before",
-				new DateTime(2010, 10, 10, 11, 12, 13), new DateTime(2010, 10, 10, 11, 14, 13));
-		sut.insert(itemBeforeBefore);
+//		TimeTrackingItem itemBeforeBefore = new TimeTrackingItem("Item before before",
+//				new DateTime(2010, 10, 10, 11, 12, 13), new DateTime(2010, 10, 10, 11, 14, 13));
+		//sut.insert(itemBeforeBefore);
 		TimeTrackingItem itemBefore = new TimeTrackingItem("Item before", new DateTime(2020, 10, 10, 11, 12, 13),
 				new DateTime(2020, 10, 10, 11, 14, 13));
-		sut.insert(itemBefore);
+		//sut.insert(itemBefore);
 		TimeTrackingItem overlappedItem = new TimeTrackingItem("Overlapped item",
 				new DateTime(2020, 10, 10, 11, 14, 13), new DateTime(2020, 10, 10, 11, 15, 13));
-		sut.insert(overlappedItem);
+		//sut.insert(overlappedItem);
 		TimeTrackingItem itemAfter = new TimeTrackingItem("Item after", new DateTime(2020, 10, 10, 11, 15, 13),
 				new DateTime(2020, 10, 10, 11, 17, 13));
-		sut.insert(itemAfter);
-		TimeTrackingItem itemAfterAfter = new TimeTrackingItem("Item even after",
-				new DateTime(2020, 10, 10, 11, 17, 13), new DateTime(2020, 10, 10, 11, 19, 13));
-		sut.insert(itemAfterAfter);
+		//sut.insert(itemAfter);
+//		TimeTrackingItem itemAfterAfter = new TimeTrackingItem("Item even after",
+//				new DateTime(2020, 10, 10, 11, 17, 13), new DateTime(2020, 10, 10, 11, 19, 13));
+		//sut.insert(itemAfterAfter);
 
-		TimeTrackingItem newItem = new TimeTrackingItem("new item", new DateTime(2020, 10, 10, 11, 13, 13),
-				new DateTime(2020, 10, 10, 11, 16, 13));
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Arrays.asList(itemBefore, overlappedItem, itemAfter));
+		
+		DateTime startOfNewItem = new DateTime(2020, 10, 10, 11, 13, 13);
+		DateTime endOfNewItem = new DateTime(2020, 10, 10, 11, 16, 13);
+		TimeTrackingItem newItem = new TimeTrackingItem("new item", startOfNewItem,
+				endOfNewItem);
 
 		// WHEN
 		sut.insert(newItem);
 
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(
-				new TimeTrackingItem("Item before before", new DateTime(2010, 10, 10, 11, 12, 13),
-						new DateTime(2010, 10, 10, 11, 14, 13)), 
-				new TimeTrackingItem("Item before", new DateTime(2020, 10, 10, 11, 12, 13),
-						new DateTime(2020, 10, 10, 11, 13, 13)), 
-				new TimeTrackingItem("new item", new DateTime(2020, 10, 10, 11, 13, 13),
-						new DateTime(2020, 10, 10, 11, 16, 13)), 
-				new TimeTrackingItem("Item after", new DateTime(2020, 10, 10, 11, 16, 13),
-						new DateTime(2020, 10, 10, 11, 17, 13)), 
-				new TimeTrackingItem("Item even after", new DateTime(2020, 10, 10, 11, 17, 13),
-						new DateTime(2020, 10, 10, 11, 19, 13))));
+//		assertThat(dbStorage.getAllItems(), Matchers.contains(
+//				new TimeTrackingItem("Item before before", new DateTime(2010, 10, 10, 11, 12, 13),
+//						new DateTime(2010, 10, 10, 11, 14, 13)), 
+//				new TimeTrackingItem("Item before", new DateTime(2020, 10, 10, 11, 12, 13),
+//						startOfNewItem), 
+//				new TimeTrackingItem("new item", startOfNewItem,
+//						endOfNewItem), 
+//				new TimeTrackingItem("Item after", endOfNewItem,
+//						new DateTime(2020, 10, 10, 11, 17, 13)), 
+//				new TimeTrackingItem("Item even after", new DateTime(2020, 10, 10, 11, 17, 13),
+//						new DateTime(2020, 10, 10, 11, 19, 13))));
+		
+		verify(dbStorage).getItemsInRange(Optional.of(startOfNewItem), Optional.of(endOfNewItem));
+		verify(dbStorage).deleteItemInDB(itemBefore);
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("Item before", new DateTime(2020, 10, 10, 11, 12, 13),
+						startOfNewItem));
+		verify(dbStorage).deleteItemInDB(overlappedItem);
+		verify(dbStorage).deleteItemInDB(itemAfter);
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("Item after", endOfNewItem,
+						new DateTime(2020, 10, 10, 11, 17, 13)));
+		verify(dbStorage).insertItemInDB(newItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
@@ -312,17 +377,22 @@ public class DBItemPersisterTest {
 		DateTime endOfExistingItem = new DateTime(2012, 1, 1, 13, 0, 0);
 		TimeTrackingItem coveringItem = new TimeTrackingItem("covering", startOfExistingItem, endOfExistingItem);
 
-		sut.insert(coveringItem);
-		// WHEN
 		DateTime startOfNewItem = new DateTime(2012, 1, 1, 11, 0, 0);
 		DateTime endOfNewItem = new DateTime(2012, 1, 1, 12, 0, 0);
+		
+		given(dbStorage.getItemsInRange(Optional.of(startOfNewItem), Optional.of(endOfNewItem))).willReturn(Collections.singletonList(coveringItem));
+		
+		// WHEN
 		TimeTrackingItem coveredItem = new TimeTrackingItem("newItem", startOfNewItem, endOfNewItem);
 		sut.insert(coveredItem);
-		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains(
-				new TimeTrackingItem("covering", startOfExistingItem, startOfNewItem), 
-				new TimeTrackingItem("newItem", startOfNewItem, endOfNewItem), 
-				new TimeTrackingItem("covering", endOfNewItem, endOfExistingItem) ));
+		
+		// THEN		
+		verify(dbStorage).getItemsInRange(Optional.of(startOfNewItem), Optional.of(endOfNewItem));
+		verify(dbStorage).deleteItemInDB(coveringItem);
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("covering", startOfExistingItem, startOfNewItem));
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("newItem", startOfNewItem, endOfNewItem));
+		verify(dbStorage).insertItemInDB(new TimeTrackingItem("covering", endOfNewItem, endOfExistingItem));
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 	@Test
@@ -331,15 +401,17 @@ public class DBItemPersisterTest {
 		DateTime startOfExistingItem = new DateTime(2010, 10, 10, 11, 12, 13);
 		DateTime endOfExistingItem = new DateTime(2010, 10, 10, 11, 14, 13);
 		TimeTrackingItem oldItem = new TimeTrackingItem("old item", startOfExistingItem, endOfExistingItem);
-		sut.insert(oldItem);
 
-		DateTime startOfNewItem = new DateTime(2011, 10, 10, 11, 12, 13);
-		TimeTrackingItem newItem = new TimeTrackingItem("old item", startOfNewItem);
+		given(dbStorage.getItemsInRange(Optional.of(endOfExistingItem), Optional.absent())).willReturn(Collections.singletonList(oldItem));
+		TimeTrackingItem newItem = new TimeTrackingItem("new item", endOfExistingItem);
 
 		// WHEN
 		sut.insert(newItem);
+		
 		// THEN
-		assertThat(dbStorage.getAllItems(), Matchers.contains( oldItem, newItem ));
+		verify(dbStorage).getItemsInRange(Optional.of(endOfExistingItem), Optional.absent());
+		verify(dbStorage).insertItemInDB(newItem);
+		verifyNoMoreInteractions(dbStorage);
 	}
 
 }
