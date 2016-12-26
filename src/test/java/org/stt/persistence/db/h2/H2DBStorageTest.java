@@ -45,7 +45,7 @@ public class H2DBStorageTest {
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		
-		given(configuration.getDatabase()).willReturn("mem:H2ItemWriterTest");
+		given(configuration.getDatabase()).willReturn("mem:");
 		given(configuration.getUserName()).willReturn("test");
 		given(configuration.getPassword()).willReturn("");
 		
@@ -315,7 +315,7 @@ public class H2DBStorageTest {
 		sut.insertItemInDB(theItem);
 		
 		// WHEN
-		List<TimeTrackingItem> items = sut.getItemsInRange(new DateTime(2016, 12, 17, 16 ,0, 0), 
+		List<TimeTrackingItem> items = sut.getItemsInRange(Optional.of(new DateTime(2016, 12, 17, 16 ,0, 0)), 
 				Optional.<DateTime>absent());
 		
 		// THEN
@@ -335,7 +335,7 @@ public class H2DBStorageTest {
 		sut.insertItemInDB(theItem);
 		
 		// WHEN
-		List<TimeTrackingItem> items = sut.getItemsInRange(new DateTime(2016, 12, 17, 16 ,0, 0), 
+		List<TimeTrackingItem> items = sut.getItemsInRange(Optional.of(new DateTime(2016, 12, 17, 16 ,0, 0)), 
 				Optional.of(new DateTime(2016, 12, 17, 18, 0, 0)));
 		
 		// THEN
@@ -355,7 +355,7 @@ public class H2DBStorageTest {
 		sut.insertItemInDB(theItem);
 		
 		// WHEN
-		List<TimeTrackingItem> items = sut.getItemsInRange(new DateTime(2016, 12, 17, 13 ,0, 0), 
+		List<TimeTrackingItem> items = sut.getItemsInRange(Optional.of(new DateTime(2016, 12, 17, 13 ,0, 0)), 
 				Optional.of(new DateTime(2016, 12, 17, 17, 0, 0)));
 		
 		// THEN
@@ -375,7 +375,7 @@ public class H2DBStorageTest {
 		sut.insertItemInDB(theItem);
 		
 		// WHEN
-		List<TimeTrackingItem> items = sut.getItemsInRange(new DateTime(2016, 12, 17, 16 ,0, 0), 
+		List<TimeTrackingItem> items = sut.getItemsInRange(Optional.of(new DateTime(2016, 12, 17, 16 ,0, 0)), 
 				Optional.of(new DateTime(2016, 12, 17, 20, 0, 0)));
 		
 		// THEN
@@ -404,7 +404,7 @@ public class H2DBStorageTest {
 		sut.insertItemInDB(third);
 		
 		// WHEN
-		List<TimeTrackingItem> items = sut.getItemsInRange(new DateTime(2016, 12, 17, 10 ,0, 0), 
+		List<TimeTrackingItem> items = sut.getItemsInRange(Optional.of(new DateTime(2016, 12, 17, 10 ,0, 0)), 
 				Optional.of(new DateTime(2016, 12, 17, 15, 0, 0)));
 		
 		// THEN

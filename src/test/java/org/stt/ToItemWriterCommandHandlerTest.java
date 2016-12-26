@@ -441,9 +441,7 @@ public class ToItemWriterCommandHandlerTest {
 
         // THEN
         TimeTrackingItem[] timeTrackingItems = timeTrackingItemQueries.queryAllItems().toArray(new TimeTrackingItem[2]);
-        for (TimeTrackingItem item : timeTrackingItems) {
-            System.out.println(item);
-        }
+        assertThat(timeTrackingItems.length, is(2));
         assertThat(timeTrackingItems[1].getStart().withTimeAtStartOfDay(), is(new DateTime(2014, 6, 22, 0, 0)));
     }
 

@@ -13,13 +13,13 @@ import org.stt.persistence.db.DBItemPersister;
 import org.stt.persistence.db.DBItemReader;
 import org.stt.persistence.db.DBItemWriter;
 import org.stt.persistence.db.DBStorage;
-import org.stt.query.DefaultTimeTrackingItemQueries;
 import org.stt.query.TimeTrackingItemQueries;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
 public class H2PersistenceModule extends AbstractModule {
@@ -29,7 +29,7 @@ public class H2PersistenceModule extends AbstractModule {
         bind(ItemReader.class).to(DBItemReader.class);
         bind(ItemWriter.class).to(DBItemWriter.class);
         bind(ItemReaderProvider.class).to(PreCachingItemReaderProvider.class);
-        bind(TimeTrackingItemQueries.class).to(DefaultTimeTrackingItemQueries.class);
+        bind(TimeTrackingItemQueries.class).to(DBStorage.class);
         bind(ItemPersister.class).to(DBItemPersister.class);
 	}
 	
@@ -47,6 +47,7 @@ public class H2PersistenceModule extends AbstractModule {
 	}
 	
 	@Provides
+	@Singleton
 	@Inject public DBStorage getDBStorage(ConnectionProvider connectionProvider) throws SQLException
 	{
 		return new H2DBStorage(connectionProvider);
