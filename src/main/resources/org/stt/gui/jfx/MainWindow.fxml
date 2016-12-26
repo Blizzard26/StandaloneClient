@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.*?>
+<?import javafx.geometry.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+
 <BorderPane prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    <padding>
       <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -38,11 +41,23 @@
                   <Insets />
                </VBox.margin>
             </ListView>
-            <VBox fx:id="additionals">
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints fillWidth="false" hgrow="NEVER" minWidth="50.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
                <children>
-                  <FlowPane fx:id="achievements" style="-fx-background-color: lightgray;" />
+                  <VBox fx:id="additionals" prefHeight="25.0">
+                     <children>
+                        <FlowPane fx:id="achievements" style="-fx-background-color: lightgray;" />
+                     </children>
+                  </VBox>
+                  <Button fx:id="prevButton" mnemonicParsing="false" onAction="#previousWeek" text="%prevWeek" textAlignment="CENTER" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.hgrow="NEVER" />
                </children>
-            </VBox>
+            </GridPane>
          </children>
       </VBox>
    </center>

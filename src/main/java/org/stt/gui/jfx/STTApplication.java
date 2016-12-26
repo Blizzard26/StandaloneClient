@@ -1,11 +1,66 @@
 package org.stt.gui.jfx;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.awt.Desktop;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.TokenStream;
+import org.joda.time.DateTime;
+import org.stt.Configuration;
+import org.stt.command.Command;
+import org.stt.command.CommandParser;
+import org.stt.command.NewItemCommand;
+import org.stt.command.NothingCommand;
+import org.stt.config.CommandTextConfig;
+import org.stt.config.TimeTrackingItemListConfig;
+import org.stt.event.ShuttingDown;
+import org.stt.fun.Achievement;
+import org.stt.fun.AchievementService;
+import org.stt.fun.AchievementsUpdated;
+import org.stt.g4.EnglishCommandsLexer;
+import org.stt.g4.EnglishCommandsParser;
+import org.stt.gui.jfx.STTOptionDialogs.Result;
+import org.stt.gui.jfx.TimeTrackingItemCell.ContinueActionHandler;
+import org.stt.gui.jfx.TimeTrackingItemCell.DeleteActionHandler;
+import org.stt.gui.jfx.TimeTrackingItemCell.EditActionHandler;
+import org.stt.gui.jfx.binding.FirstItemOfDaySet;
+import org.stt.gui.jfx.binding.TimeTrackingListFilter;
+import org.stt.gui.jfx.text.CommandHighlighter;
+import org.stt.gui.jfx.text.ContextPopupCreator;
+import org.stt.gui.jfx.text.HighlightingOverlay;
+import org.stt.gui.jfx.text.PopupAtCaretPlacer;
+import org.stt.model.ItemModified;
+import org.stt.model.TimeTrackingItem;
+import org.stt.model.TimeTrackingItemFilter;
+import org.stt.query.TimeTrackingItemQueries;
+import org.stt.text.ExpansionProvider;
+import org.stt.text.ItemGrouper;
+import org.stt.text.WorktimeCategorizer;
+import org.stt.validation.ItemAndDateValidator;
+
 import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.sun.javafx.application.PlatformImpl;
+
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -26,8 +81,11 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.*;
+import javafx.scene.control.ListView;
+import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -39,59 +97,6 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.TokenStream;
-import org.joda.time.DateTime;
-import org.stt.text.ExpansionProvider;
-import org.stt.text.ItemGrouper;
-import org.stt.text.WorktimeCategorizer;
-import org.stt.Configuration;
-import org.stt.command.Command;
-import org.stt.command.CommandParser;
-import org.stt.command.NewItemCommand;
-import org.stt.command.NothingCommand;
-import org.stt.config.CommandTextConfig;
-import org.stt.config.TimeTrackingItemListConfig;
-import org.stt.event.ShuttingDown;
-import org.stt.fun.AchievementsUpdated;
-import org.stt.fun.Achievement;
-import org.stt.fun.AchievementService;
-import org.stt.g4.EnglishCommandsLexer;
-import org.stt.g4.EnglishCommandsParser;
-import org.stt.gui.jfx.TimeTrackingItemCell.ContinueActionHandler;
-import org.stt.gui.jfx.TimeTrackingItemCell.DeleteActionHandler;
-import org.stt.gui.jfx.TimeTrackingItemCell.EditActionHandler;
-import org.stt.gui.jfx.binding.FirstItemOfDaySet;
-import org.stt.gui.jfx.binding.TimeTrackingListFilter;
-import org.stt.gui.jfx.text.CommandHighlighter;
-import org.stt.gui.jfx.text.ContextPopupCreator;
-import org.stt.gui.jfx.text.HighlightingOverlay;
-import org.stt.gui.jfx.text.PopupAtCaretPlacer;
-import org.stt.model.ItemModified;
-import org.stt.model.TimeTrackingItem;
-import org.stt.model.TimeTrackingItemFilter;
-import org.stt.query.TimeTrackingItemQueries;
-import org.stt.validation.ItemAndDateValidator;
-
-import java.awt.*;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.ResourceBundle;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.stt.gui.jfx.STTOptionDialogs.Result;
 
 @Singleton
 public class STTApplication implements DeleteActionHandler, EditActionHandler,
@@ -122,6 +127,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 	private ItemGrouper itemGrouper;
 	private WorktimeCategorizer worktimeCategorizer;
 	private TimeTrackingItemListConfig timeTrackingItemListConfig;
+	private DateTime viewAdapterStartDate;
 
     @Inject
     STTApplication(STTOptionDialogs STTOptionDialogs,
@@ -159,6 +165,8 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         filteredList = new TimeTrackingListFilter(allItems, currentCommand,
                 timeTrackingItemListConfig.isFilterDuplicatesWhenSearching());
         askBeforeDeleting = timeTrackingItemListConfig.isAskBeforeDeleting();
+        
+        viewAdapterStartDate = DateTime.now().withTimeAtStartOfDay().withDayOfWeek(1);
     }
 
     @Subscribe
@@ -299,7 +307,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     }
 
     private void updateItems() {
-        viewAdapter.updateAllItems(searcher.queryAllItems());
+		viewAdapter.updateAllItems(searcher.queryFirstNItems(Optional.of(viewAdapterStartDate), Optional.absent(), Optional.absent()));
     }
 
     @Override
@@ -362,6 +370,9 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 
         @FXML
         Button insertButton;
+        
+        @FXML
+        Button prevButton;
 
         @FXML
         ListView<TimeTrackingItem> result;
@@ -639,6 +650,12 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 
 		private void minimizeToTray() {
 			stage.hide();
+		}
+		
+		@FXML
+		void previousWeek() {
+			viewAdapterStartDate = viewAdapterStartDate.minusWeeks(1);
+			updateItems();
 		}
 
         @FXML
