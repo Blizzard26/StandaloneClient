@@ -18,10 +18,13 @@ public class H2Configuration {
 	public String getDatabase() {
         String sttFileString = mainConfiguration.getPropertiesReplaced("h2_db", "$HOME$/stt.h2.db");
         File sttFile = new File(sttFileString);
-        try {
-            sttFile.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (!sttFile.exists() || !sttFile.isFile())
+        {
+	        try {
+	            sttFile.createNewFile();
+	        } catch (IOException e) {
+	            throw new RuntimeException(e);
+	        }
         }
         return sttFile.getAbsolutePath();
 	}
