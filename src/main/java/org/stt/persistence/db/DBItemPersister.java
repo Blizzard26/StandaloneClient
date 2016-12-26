@@ -107,18 +107,36 @@ public class DBItemPersister implements ItemPersister {
 
 								// |----|
 								//   |-----| item
-								TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(),
-										otherStart, start);
-								replace(other, newItem);
+								if (!otherEnd.isEqual(start))
+								{
+									TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(),
+											otherStart, start);
+									replace(other, newItem);
+								}
 							}
 						}
 					} else { // !itemEnd.isPresent()
 
 						// |----|
 						//   |----- item
-						TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), otherStart,
-								start);
-						replace(other, newItem);
+						
+						if (other.getEnd().isPresent())
+						{
+							DateTime otherEnd = other.getEnd().get();
+							
+							if (otherEnd.isAfter(start))
+							{
+								TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), otherStart,
+										start);
+								replace(other, newItem);
+							}
+						}
+						else
+						{
+							TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), otherStart,
+									start);
+							replace(other, newItem);
+						}
 					}
 				}
 
