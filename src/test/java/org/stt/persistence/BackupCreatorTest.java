@@ -12,6 +12,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.Configuration;
+import org.stt.persistence.stt.STTBackupCreator;
 import org.stt.time.DateTimeHelper;
 
 import java.io.File;
@@ -34,7 +35,7 @@ public class BackupCreatorTest {
 	private File currentTempFolder;
 	private File currentSttFile;
 
-	private BackupCreator sut;
+	private STTBackupCreator sut;
 
 	@Before
 	public void setup() throws IOException {
@@ -52,7 +53,7 @@ public class BackupCreatorTest {
 		given(configuration.getBackupLocation()).willReturn(currentTempFolder);
 		given(configuration.getBackupRetentionCount()).willReturn(3);
 
-		sut = new BackupCreator(configuration);
+		sut = new STTBackupCreator(configuration);
 	}
 
 	@Test

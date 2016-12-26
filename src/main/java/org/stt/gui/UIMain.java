@@ -25,9 +25,9 @@ import org.stt.fun.AchievementService;
 import org.stt.gui.jfx.JFXModule;
 import org.stt.gui.jfx.STTApplication;
 import org.stt.gui.jfx.WorktimePaneBuilder;
-import org.stt.persistence.BackupCreator;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.db.h2.H2PersistenceModule;
+import org.stt.persistence.stt.STTBackupCreator;
 import org.stt.text.TextModule;
 import org.stt.time.TimeUtilModule;
 
@@ -86,7 +86,7 @@ public class UIMain extends Application {
         }, 0, 1000);
 
         startService(injector, YamlConfigService.class);
-        startService(injector, BackupCreator.class);
+        startService(injector, STTBackupCreator.class);
         startServiceInBackground(injector, AchievementService.class);
         startService(injector, ItemLogService.class);
         startServiceInBackground(injector, FileChangeListenerService.class);
