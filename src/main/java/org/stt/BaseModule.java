@@ -6,6 +6,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import org.stt.cli.CommandHandler;
 import org.stt.command.ToItemWriterCommandHandler;
+import org.stt.persistence.DatabaseFile;
 import org.stt.persistence.stt.STTFile;
 
 import java.io.*;
@@ -28,9 +29,17 @@ public class BaseModule extends AbstractModule {
     @Provides
     @Singleton
     @STTFile
-    private File provideDatabaseFile(Configuration configuration) {
+    private File provideSttFile(Configuration configuration) {
         return configuration.getSttFile();
     }
+    
+    @Provides
+    @Singleton
+    @DatabaseFile
+    private File provideDatabaseFile(Configuration configuration) {
+        return configuration.getDatabaseFile();
+    }
+	
 
     @Provides
     @Singleton

@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 
 import org.stt.Service;
 import org.stt.model.FileChanged;
+import org.stt.persistence.DatabaseFile;
 import org.stt.persistence.stt.STTFile;
 
 import com.google.common.eventbus.EventBus;
@@ -32,7 +33,7 @@ public class FileChangeListenerService implements Service
 	private EventBus eventBus;
 	private WatchService watchService;
 
-	private Path sttFile;
+	private Path databaseFile;
 
 	static class WatchHandler extends Thread
 	{
@@ -97,16 +98,17 @@ public class FileChangeListenerService implements Service
 	
 
 	@Inject
-	public FileChangeListenerService(@STTFile File file, EventBus eventBus) {
-		this.sttFile = checkNotNull(file).toPath();
+	public FileChangeListenerService(@DatabaseFile File file, EventBus eventBus) {
+		this.databaseFile = checkNotNull(file).toPath();
 		this.eventBus = checkNotNull(eventBus);
+		LOG.info("Starting FileChangeListenerService for file "+this.databaseFile);
 	}
 	
 	@Override
 	public void start() throws Exception {
 		watchService = FileSystems.getDefault().newWatchService();
 		
-		WatchHandler handler = new WatchHandler(sttFile, watchService, eventBus);
+		WatchHandler handler = new WatchHandler(databaseFile, watchService, eventBus);
 		handler.start();
 	}
 

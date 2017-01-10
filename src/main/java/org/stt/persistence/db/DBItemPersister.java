@@ -29,7 +29,7 @@ public class DBItemPersister implements ItemPersister {
 	@Override
 	public void insert(TimeTrackingItem item) throws IOException {
 		Preconditions.checkNotNull(item);
-
+		this.dbStorage.startTransaction();
 		try {
 			DateTime start = item.getStart();
 			Optional<DateTime> itemEnd = item.getEnd();
@@ -143,7 +143,10 @@ public class DBItemPersister implements ItemPersister {
 			}
 			this.dbStorage.insertItemInDB(item);
 		} catch (SQLException e) {
+			this.dbStorage.rollback();
 			throw new IOException(e);
+		} finally {
+			this.dbStorage.endTransaction();
 		}
 
 		
@@ -155,11 +158,15 @@ public class DBItemPersister implements ItemPersister {
 	public void replace(TimeTrackingItem item, TimeTrackingItem with) throws IOException {
 		Preconditions.checkNotNull(item);
 		Preconditions.checkNotNull(with);
+		this.dbStorage.startTransaction();
 		try {
 			this.dbStorage.deleteItemInDB(item);
 			this.dbStorage.insertItemInDB(with);
 		} catch (SQLException e) {
+			this.dbStorage.rollback();
 			throw new IOException(e);
+		} finally {
+			this.dbStorage.endTransaction();
 		}
 	}
 
@@ -167,10 +174,14 @@ public class DBItemPersister implements ItemPersister {
 	public void delete(TimeTrackingItem item) throws IOException {
 		Preconditions.checkNotNull(item);
 
+		this.dbStorage.startTransaction();
 		try {
 			this.dbStorage.deleteItemInDB(item);
 		} catch (SQLException e) {
+			this.dbStorage.rollback();
 			throw new IOException(e);
+		} finally {
+			this.dbStorage.endTransaction();
 		}
 	}
 

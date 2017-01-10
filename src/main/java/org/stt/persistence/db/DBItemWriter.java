@@ -27,11 +27,15 @@ public class DBItemWriter implements ItemWriter {
 	@Override
 	public void write(TimeTrackingItem item) throws IOException {
 		Preconditions.checkNotNull(item);
+		
+		this.dbStorage.startTransaction();
 		try {
 			dbStorage.insertItemInDB(item);
 		} catch (SQLException e) {
+			this.dbStorage.rollback();
 			throw new IOException(e);
 		}
+		this.dbStorage.endTransaction();
 	}
 	
 

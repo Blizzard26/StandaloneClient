@@ -147,6 +147,11 @@ public class Configuration {
         return sttFile;
     }
 
+    public File getDatabaseFile()
+    {
+    	return getSttFile();
+    }
+    
     public File getTiFile() {
         String tiFile = getPropertiesReplaced("tiFile", "$HOME$/.ti-sheet");
         return new File(tiFile);

@@ -20,7 +20,7 @@ public class H2BackupCreator extends BackupCreator {
 
 	@Inject
 	public H2BackupCreator(H2Configuration configuration) {
-		super(configuration.getBaseConfiguration());
+		super(configuration);
 		this.h2Configuration = configuration;
 	}
 

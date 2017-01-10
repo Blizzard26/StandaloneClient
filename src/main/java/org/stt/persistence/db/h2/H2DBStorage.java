@@ -1,5 +1,6 @@
 package org.stt.persistence.db.h2;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -7,6 +8,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.management.RuntimeErrorException;
 
 import org.joda.time.DateTime;
 import org.jooq.Condition;
@@ -100,6 +103,8 @@ public class H2DBStorage implements DBStorage {
 	private ConnectionProvider connectionProvider;
 	private boolean dbInitialized = false;
 
+	private Connection txConnection;
+
 	@Inject public H2DBStorage(ConnectionProvider connectionProvider) throws SQLException
 	{
 		this.connectionProvider = connectionProvider;	
@@ -111,7 +116,7 @@ public class H2DBStorage implements DBStorage {
 		return DSL.using(connectionProvider, SQLDialect.H2);
 	}
 	
-	public void init() throws SQLException {
+	public void init() {
 		if (!dbInitialized) {
 			try (DSLContext context = getDSLContext())
 			{
@@ -366,6 +371,47 @@ public class H2DBStorage implements DBStorage {
 	@Override
 	public Collection<TimeTrackingItem> queryAllItems() {
 		return getAllItems();
+	}
+
+
+	@Override
+	public void startTransaction() {
+		if (txConnection == null)
+		{
+			txConnection = connectionProvider.acquire();
+			try {
+				txConnection.setAutoCommit(false);
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+
+	@Override
+	public void endTransaction()  {
+		if (txConnection != null)
+		{
+			try {
+				txConnection.commit();
+				txConnection.setAutoCommit(true);
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+			connectionProvider.release(txConnection);
+		}
+		txConnection = null;
+	}
+
+
+	@Override
+	public void rollback()   {
+		if (txConnection != null)
+			try {
+				txConnection.rollback();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 	}
 
 }

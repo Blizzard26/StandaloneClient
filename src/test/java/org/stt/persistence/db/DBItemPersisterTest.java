@@ -5,6 +5,7 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -101,6 +102,8 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).getItemsInRange(Optional.of(startDate), Optional.absent());
 		verify(dbStorage).insertItemInDB(theItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -119,6 +122,8 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).getItemsInRange(Optional.of(theTime), Optional.absent());
 		verify(dbStorage).insertItemInDB(theItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -139,6 +144,8 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).getItemsInRange(Optional.of(start), Optional.of(end));
 		verify(dbStorage).insertItemInDB(theItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -158,6 +165,8 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).getItemsInRange(Optional.of(start), Optional.of(end));
 		verify(dbStorage).insertItemInDB(theItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -172,6 +181,8 @@ public class DBItemPersisterTest {
 
 		// THEN
 		verify(dbStorage).deleteItemInDB(theItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -189,6 +200,8 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).deleteItemInDB(theItem2);
 		verify(dbStorage).insertItemInDB(theItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -211,6 +224,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.absent());
 		verify(dbStorage).deleteItemInDB(existingItem);
 		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -235,6 +250,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).deleteItemInDB(existingItem);
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("testitem", startOfExistingItem, startOfNewItem));
 		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage, times(2)).startTransaction();
+		verify(dbStorage, times(2)).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -259,6 +276,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.of(endOfNewItem));
 		verify(dbStorage).deleteItemInDB(existingItem);
 		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -287,6 +306,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).deleteItemInDB(existingItem);
 		verify(dbStorage).insertItemInDB(splitItem);
 		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage, times(2)).startTransaction();
+		verify(dbStorage, times(2)).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -312,6 +333,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).deleteItemInDB(existingItem);
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("existing item", endOfNewItem));
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("new item", startOfExistingItem, endOfNewItem));
+		verify(dbStorage, times(2)).startTransaction();
+		verify(dbStorage, times(2)).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -367,6 +390,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("Item after", endOfNewItem,
 						new DateTime(2020, 10, 10, 11, 17, 13)));
 		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage, times(3)).startTransaction();
+		verify(dbStorage, times(3)).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -392,6 +417,8 @@ public class DBItemPersisterTest {
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("covering", startOfExistingItem, startOfNewItem));
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("newItem", startOfNewItem, endOfNewItem));
 		verify(dbStorage).insertItemInDB(new TimeTrackingItem("covering", endOfNewItem, endOfExistingItem));
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 
@@ -411,6 +438,8 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).getItemsInRange(Optional.of(endOfExistingItem), Optional.absent());
 		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
 		verifyNoMoreInteractions(dbStorage);
 	}
 

@@ -18,5 +18,12 @@ public interface DBStorage extends TimeTrackingItemQueries {
 	void insertItemInDB(TimeTrackingItem item) throws SQLException;
 
 	void deleteItemInDB(TimeTrackingItem item) throws SQLException;
+	
+	void startTransaction();
+	
+	void endTransaction() ;
+
+	void rollback() ;
+	
 
 }

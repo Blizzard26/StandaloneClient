@@ -3,7 +3,10 @@ package org.stt.persistence.stt;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+
+import org.stt.Configuration;
 import org.stt.persistence.*;
 import org.stt.query.DefaultTimeTrackingItemQueries;
 import org.stt.query.TimeTrackingItemQueries;
@@ -43,5 +46,6 @@ public class STTPersistenceModule extends AbstractModule {
     Writer provideWriter(@STTFile File sttFile) throws FileNotFoundException, UnsupportedEncodingException {
         return new OutputStreamWriter(new FileOutputStream(sttFile, false), "UTF-8");
     }
+
 
 }
