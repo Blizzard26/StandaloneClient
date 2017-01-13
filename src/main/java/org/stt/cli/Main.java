@@ -22,6 +22,7 @@ import org.stt.command.EndCurrentItemCommand;
 import org.stt.command.ResumeCommand;
 import org.stt.command.ToItemWriterCommandHandler;
 import org.stt.config.ConfigModule;
+import org.stt.event.EventBusAware;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.IOUtil;
 import org.stt.persistence.ItemPersister;
@@ -88,7 +89,7 @@ public class Main {
 	private ReportPrinter reportPrinter;
 	private Provider<ItemWriter> itemWriterProvider;
 
-	@Inject public Main(Provider<ItemPersister> itemPersisterProvider, 
+	@Inject public Main(@EventBusAware Provider<ItemPersister> itemPersisterProvider, 
 			ItemReaderProvider itemReaderProvider,
 			Provider<ItemWriter> itemWriterProvider,
 			TimeTrackingItemQueries timeTrackingItemQueries,

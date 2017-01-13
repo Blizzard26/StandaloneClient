@@ -5,6 +5,7 @@ import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import org.joda.time.DateTime;
 import org.stt.cli.CommandHandler;
+import org.stt.event.EventBusAware;
 import org.stt.event.ShuttingDown;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.ItemPersister;
@@ -25,7 +26,7 @@ public class ToItemWriterCommandHandler implements CommandHandler {
     private CommandParser parser;
 
     @Inject
-    public ToItemWriterCommandHandler(ItemPersister itemWriter,
+    public ToItemWriterCommandHandler(@EventBusAware ItemPersister itemWriter,
                                       TimeTrackingItemQueries timeTrackingItemQueries) {
         this.itemWriter = checkNotNull(itemWriter);
         this.timeTrackingItemQueries = checkNotNull(timeTrackingItemQueries);
