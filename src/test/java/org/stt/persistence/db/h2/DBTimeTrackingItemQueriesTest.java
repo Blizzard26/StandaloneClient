@@ -205,9 +205,9 @@ public class DBTimeTrackingItemQueriesTest {
     @Test
     public void shouldOnlyFindCurrentItem() throws SQLException {
         // GIVEN
-        DateTime endOfFinishedItem = DateTime.now().plusMillis(10);
+        DateTime endOfFinishedItem = DateTime.now().withMillisOfSecond(0).plusSeconds(10);
 		TimeTrackingItem finishedItem = new TimeTrackingItem(null,
-                DateTime.now(), endOfFinishedItem);
+                DateTime.now().withMillisOfSecond(0), endOfFinishedItem);
         TimeTrackingItem unfinishedItem = new TimeTrackingItem(null,
                 endOfFinishedItem);
         givenDBContains(finishedItem, unfinishedItem);
@@ -300,8 +300,8 @@ public class DBTimeTrackingItemQueriesTest {
     @Test
     public void shouldReturnItemsWithinInterval() throws SQLException {
         // GIVEN
-        Interval queryInterval = new Interval(500, 1000);
-        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(100), new DateTime(500), new DateTime(1000), new DateTime(1500)});
+        Interval queryInterval = new Interval(5000, 10000);
+        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(1000), new DateTime(5000), new DateTime(10000), new DateTime(15000)});
 
         DNFClause dnfClause = new DNFClause();
         dnfClause.withStartBetween(queryInterval);
@@ -310,48 +310,48 @@ public class DBTimeTrackingItemQueriesTest {
 
         // THEN
         assertNotNull(result);
-        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(500)})));
+        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(5000)})));
     }
 
     @Test
     public void shouldReturnItemsWithStartBefore() throws SQLException {
         // GIVEN
-        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(100), new DateTime(500), new DateTime(1000), new DateTime(1500)});
+        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(1000), new DateTime(5000), new DateTime(10000), new DateTime(15000)});
 
         DNFClause dnfClause = new DNFClause();
-        dnfClause.withStartBefore(new DateTime(500));
+        dnfClause.withStartBefore(new DateTime(5000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(dnfClause);
 
         // THEN
         assertNotNull(result);
-        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(100)})));
+        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(1000)})));
     }
 
     @Test
     public void shouldReturnItemsWithStartNotBefore() throws SQLException {
         // GIVEN
-        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(100), new DateTime(500), new DateTime(1000), new DateTime(1500)});
+        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(1000), new DateTime(5000), new DateTime(10000), new DateTime(15000)});
 
         DNFClause dnfClause = new DNFClause();
-        dnfClause.withStartNotBefore(new DateTime(1000));
+        dnfClause.withStartNotBefore(new DateTime(10000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(dnfClause);
 
         // THEN
         assertNotNull(result);
-        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(1000), new DateTime(1500)})));
+        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(10000), new DateTime(15000)})));
     }
 
     @Test
     public void shouldReturnItemWithEndNotAfter() throws SQLException {
         // GIVEN
-        TimeTrackingItem expectedResult = new TimeTrackingItem(null, new DateTime(800), new DateTime(1000));
-        givenDBContains(expectedResult, new TimeTrackingItem(null, new DateTime(1000), new DateTime(1200)));
+        TimeTrackingItem expectedResult = new TimeTrackingItem(null, new DateTime(8000), new DateTime(10000));
+        givenDBContains(expectedResult, new TimeTrackingItem(null, new DateTime(10000), new DateTime(12000)));
         DNFClause DNFClause = new DNFClause();
-        DNFClause.withEndNotAfter(new DateTime(1000));
+        DNFClause.withEndNotAfter(new DateTime(10000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(DNFClause);

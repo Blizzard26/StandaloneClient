@@ -64,12 +64,16 @@ public class H2DBStorage implements DBStorage {
 
 		@Override
 		public DateTime from(Timestamp databaseObject) {
-			return databaseObject == null ? null : new DateTime(databaseObject.getTime());
+			return databaseObject == null ? null : new DateTime(roundToSecond(databaseObject.getTime()));
 		}
 
 		@Override
 		public Timestamp to(DateTime userObject) {
-			return userObject == null ? null : new Timestamp(userObject.getMillis());
+			return userObject == null ? null : new Timestamp(roundToSecond(userObject.getMillis()));
+		}
+
+		private long roundToSecond(long millis) {
+			return (millis / 1000) * 1000;
 		}
 
 		@Override

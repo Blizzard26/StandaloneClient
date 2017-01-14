@@ -120,7 +120,7 @@ public class ToItemWriterCommandHandlerTest {
         // GIVEN
         TimeTrackingItem unfinished = createUnfinishedItem();
         givenCurrentTimeTrackingItem(unfinished);
-        DateTime expectedEndTime = DateTime.now().plus(30000);
+        DateTime expectedEndTime = DateTime.now().withMillisOfSecond(0).plus(30000);
 
         // WHEN
         Optional<TimeTrackingItem> endCurrentItem = sut

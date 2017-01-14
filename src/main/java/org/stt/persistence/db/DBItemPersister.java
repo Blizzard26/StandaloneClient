@@ -63,10 +63,13 @@ public class DBItemPersister implements ItemPersister {
 								this.dbStorage.deleteItemInDB(other);
 							}
 						} else { // !other.getEnd().isPresent()
-							// |--------- other
+							//   |--------- other
 							// |------| item
-							TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), end);
-							replace(other, newItem);
+							if (end.isAfter(other.getStart()))
+							{
+								TimeTrackingItem newItem = new TimeTrackingItem(other.getComment().orNull(), end);
+								replace(other, newItem);
+							}
 						}
 					}
 				} else { // start.isAfter(other.getStart())

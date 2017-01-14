@@ -6,6 +6,8 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
+import java.util.Optional;
+
 public class TimeTrackingItemTest {
 
 	@Test
@@ -48,7 +50,7 @@ public class TimeTrackingItemTest {
 		TimeTrackingItem sut = new TimeTrackingItem(null, DateTime.now());
 
 		// WHEN
-		DateTime newEndTime = DateTime.now().plusMinutes(2);
+		DateTime newEndTime = DateTime.now().withMillisOfSecond(0).plusMinutes(2);
 		TimeTrackingItem newItem = sut.withEnd(newEndTime);
 
 		// THEN
@@ -63,12 +65,36 @@ public class TimeTrackingItemTest {
 		TimeTrackingItem sut = new TimeTrackingItem(null, DateTime.now());
 
 		// WHEN
-		DateTime newStartTime = DateTime.now().plusMinutes(2);
+		DateTime newStartTime = DateTime.now().withMillisOfSecond(0).plusMinutes(2);
 		TimeTrackingItem newItem = sut.withStart(newStartTime);
 
 		// THEN
 		assertThat(newItem, not(is(sut)));
 		assertThat(newItem.getStart(), is(newStartTime));
 
+	}
+	
+	@Test
+	public void shouldRoundStartToNearestSecond()
+	{
+		// GIVEN
+		
+		// WHEN
+		TimeTrackingItem sut = new TimeTrackingItem(null, new DateTime(2012, 10, 13, 10, 12, 33, 231));
+		
+		// THEN
+		assertThat(sut.getStart(), is(equalTo(new DateTime(2012, 10, 13, 10, 12, 33))));
+	}
+	
+	@Test
+	public void shouldRoundEndToNearestSecond()
+	{
+		// GIVEN
+		
+		// WHEN
+		TimeTrackingItem sut = new TimeTrackingItem(null, new DateTime(2012, 10, 13, 10, 12), new DateTime(2012, 10, 13, 11, 12, 43, 173));
+		
+		// THEN
+		assertThat(sut.getEnd().get(), is(equalTo(new DateTime(2012, 10, 13, 11, 12, 43))));
 	}
 }

@@ -82,7 +82,7 @@ public class ReportBindingTest {
 	@Test
 	public void shouldReadItemsIfStartAndEndAreSet() {
 		// GIVEN
-		final DateTime start = new DateTime();
+		final DateTime start = DateTime.now().withMillisOfSecond(0);
 		reportStart.set(start);
 		final DateTime end = start.plusDays(1);
 		reportEnd.set(end);

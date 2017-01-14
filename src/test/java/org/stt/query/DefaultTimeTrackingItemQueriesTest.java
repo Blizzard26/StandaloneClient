@@ -266,8 +266,8 @@ public class DefaultTimeTrackingItemQueriesTest {
     @Test
     public void shouldReturnItemsWithinInterval() {
         // GIVEN
-        Interval queryInterval = new Interval(500, 1000);
-        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(100), new DateTime(500), new DateTime(1000), new DateTime(1500)});
+        Interval queryInterval = new Interval(5000, 10000);
+        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(1000), new DateTime(5000), new DateTime(10000), new DateTime(15000)});
 
         DNFClause dnfClause = new DNFClause();
         dnfClause.withStartBetween(queryInterval);
@@ -275,46 +275,46 @@ public class DefaultTimeTrackingItemQueriesTest {
         Collection<TimeTrackingItem> result = sut.queryItems(dnfClause);
 
         // THEN
-        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(500)})));
+        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(5000)})));
     }
 
     @Test
     public void shouldReturnItemsWithStartBefore() {
         // GIVEN
-        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(100), new DateTime(500), new DateTime(1000), new DateTime(1500)});
+        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(1000), new DateTime(5000), new DateTime(10000), new DateTime(15000)});
 
         DNFClause dnfClause = new DNFClause();
-        dnfClause.withStartBefore(new DateTime(500));
+        dnfClause.withStartBefore(new DateTime(5000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(dnfClause);
 
         // THEN
-        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(100)})));
+        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(1000)})));
     }
 
     @Test
     public void shouldReturnItemsWithStartNotBefore() {
         // GIVEN
-        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(100), new DateTime(500), new DateTime(1000), new DateTime(1500)});
+        givenReaderReturnsTrackingTimesForStartDates(new DateTime[]{new DateTime(1000), new DateTime(5000), new DateTime(10000), new DateTime(15000)});
 
         DNFClause dnfClause = new DNFClause();
-        dnfClause.withStartNotBefore(new DateTime(1000));
+        dnfClause.withStartNotBefore(new DateTime(10000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(dnfClause);
 
         // THEN
-        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(1000), new DateTime(1500)})));
+        assertThat(mapItemToStartDateTime(result), Matchers.<Collection<DateTime>>is(Arrays.asList(new DateTime[]{new DateTime(10000), new DateTime(15000)})));
     }
 
     @Test
     public void shouldReturnItemWithEndNotAfter() {
         // GIVEN
-        TimeTrackingItem expectedResult = new TimeTrackingItem(null, new DateTime(800), new DateTime(1000));
-        givenReaderReturns(expectedResult, new TimeTrackingItem(null, new DateTime(1000), new DateTime(1200)));
+        TimeTrackingItem expectedResult = new TimeTrackingItem(null, new DateTime(8000), new DateTime(10000));
+        givenReaderReturns(expectedResult, new TimeTrackingItem(null, new DateTime(10000), new DateTime(12000)));
         DNFClause DNFClause = new DNFClause();
-        DNFClause.withEndNotAfter(new DateTime(1000));
+        DNFClause.withEndNotAfter(new DateTime(10000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(DNFClause);

@@ -25,8 +25,8 @@ public final class TimeTrackingItem {
 
 	public TimeTrackingItem(String comment, DateTime start, Optional<DateTime> end) {
 		this.comment = Optional.fromNullable(comment);
-		this.start = checkNotNull(start, "start must not be null");
-		this.end = end;
+		this.start = checkNotNull(start, "start must not be null").withMillisOfSecond(0);
+		this.end = end.transform(d -> d.withMillisOfSecond(0));
 		if (end.isPresent())
 		{
 			checkState(!end.get().isBefore(start),

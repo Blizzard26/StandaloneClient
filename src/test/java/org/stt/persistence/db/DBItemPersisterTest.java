@@ -85,7 +85,7 @@ public class DBItemPersisterTest {
 		// GIVEN
 		given(dbStorage.getItemsInRange(any(), any())).willReturn(Collections.emptyList());
 		
-		DateTime startDate = DateTime.now();
+		DateTime startDate = DateTime.now().withMillisOfSecond(0);
 		TimeTrackingItem theItem = new TimeTrackingItem("the comment", startDate);
 
 		// WHEN
@@ -214,6 +214,35 @@ public class DBItemPersisterTest {
 		// THEN
 		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem), Optional.absent());
 		verify(dbStorage).deleteItemInDB(existingItem);
+		verify(dbStorage).insertItemInDB(newItem);
+		verify(dbStorage).startTransaction();
+		verify(dbStorage).endTransaction();
+		verifyNoMoreInteractions(dbStorage);
+	}
+	
+	@Test
+	public void shouldRemoveCoveredTimeItem() throws IOException, SQLException {
+		DateTime startOfExistingItem1 = new DateTime(2011, 10, 10, 16, 14, 00);
+		DateTime endOfExistingItem1 = new DateTime(2011, 10, 10, 17, 00, 00);
+		DateTime startOfExistingItem2 = endOfExistingItem1;
+		DateTime endOfExistingItem2 = new DateTime(2011, 10, 10, 17, 03, 00);
+		DateTime startOfExistingItem3 = endOfExistingItem2;
+
+		// GIVEN
+		TimeTrackingItem existingItem1 = new TimeTrackingItem("existingItem1", startOfExistingItem1, endOfExistingItem1);
+		TimeTrackingItem existingItem2 = new TimeTrackingItem("existingItem2", startOfExistingItem2, endOfExistingItem2);
+		TimeTrackingItem existingItem3 = new TimeTrackingItem("existingItem3", startOfExistingItem3);
+		
+		given(dbStorage.getItemsInRange(any(), any())).willReturn(Arrays.asList(existingItem1, existingItem2, existingItem3));
+
+		TimeTrackingItem newItem = new TimeTrackingItem("testitem", startOfExistingItem2, endOfExistingItem2);
+
+		// WHEN
+		sut.insert(newItem);
+		
+		// THEN
+		verify(dbStorage).getItemsInRange(Optional.of(startOfExistingItem2), Optional.of(endOfExistingItem2));
+		verify(dbStorage).deleteItemInDB(existingItem2);
 		verify(dbStorage).insertItemInDB(newItem);
 		verify(dbStorage).startTransaction();
 		verify(dbStorage).endTransaction();
