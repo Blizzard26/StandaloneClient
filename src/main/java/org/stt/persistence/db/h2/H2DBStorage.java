@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.management.RuntimeErrorException;
-
 import org.joda.time.DateTime;
 import org.jooq.Condition;
 import org.jooq.ConnectionProvider;
@@ -212,12 +210,20 @@ public class H2DBStorage implements DBStorage {
 	public void insertItemInDB(TimeTrackingItem item) throws SQLException {
 		try (DSLContext context = getDSLContext())
 		{
-			InsertValuesStep4<Record,DateTime,DateTime,String,Boolean> insertStmt = context.insertInto(ITEMS_TABLE, COLUMN_START, COLUMN_END, COLUMN_COMMENT, COLUMN_LOGGED).values(item.getStart(), item.getEnd().orNull(), item.getComment().orNull(), false);
+			InsertValuesStep4<Record,DateTime,DateTime,String,Boolean> insertStmt = context.insertInto(ITEMS_TABLE, COLUMN_START, COLUMN_END, COLUMN_COMMENT, COLUMN_LOGGED).values(roundToSecond(item.getStart()), roundToSecond(item.getEnd().orNull()), item.getComment().orNull(), false);
 			
 			insertStmt.execute();
 		}
 	}
 	
+
+	private DateTime roundToSecond(DateTime dateTime) {
+		if (dateTime == null)
+			return null;
+
+		return dateTime.withMillisOfSecond(0);
+	}
+
 
 	/* (non-Javadoc)
 	 * @see org.stt.persistence.db.h2.DBStorage#deleteItemInDB(org.stt.model.TimeTrackingItem)

@@ -141,7 +141,7 @@ public class DBTimeTrackingItemQueriesTest {
     public void shouldFindCurrentItem() throws SQLException {
         // GIVEN
         TimeTrackingItem unfinishedItem = new TimeTrackingItem(null,
-                DateTime.now());
+                DateTime.now().withMillisOfSecond(0));
         givenDBContains(unfinishedItem);
         
         // WHEN
@@ -173,9 +173,10 @@ public class DBTimeTrackingItemQueriesTest {
     public void shouldFindPreviousItem() throws SQLException
     {
         // GIVEN
-    	TimeTrackingItem previousItem = new TimeTrackingItem(null, DateTime.now().minusMinutes(5), DateTime.now());
+    	DateTime now = DateTime.now().withMillisOfSecond(0);
+		TimeTrackingItem previousItem = new TimeTrackingItem(null, now.minusMinutes(5), now);
         TimeTrackingItem unfinishedItem = new TimeTrackingItem(null,
-                DateTime.now(), DateTime.now().plusMillis(1));;
+                DateTime.now().withMillisOfSecond(0), DateTime.now().withMillisOfSecond(0).plusMinutes(1));
         givenDBContains(previousItem, unfinishedItem);
 
         // WHEN
@@ -363,10 +364,10 @@ public class DBTimeTrackingItemQueriesTest {
     @Test
     public void shouldReturnItemWithEndBefore() throws SQLException {
         // GIVEN
-        TimeTrackingItem expectedResult = new TimeTrackingItem(null, new DateTime(800), new DateTime(999));
-        givenDBContains(expectedResult, new TimeTrackingItem(null, new DateTime(800), new DateTime(1000)));
+        TimeTrackingItem expectedResult = new TimeTrackingItem(null, new DateTime(8000), new DateTime(9000));
+        givenDBContains(expectedResult, new TimeTrackingItem(null, new DateTime(8000), new DateTime(10000)));
         DNFClause dnfClause = new DNFClause();
-        dnfClause.withEndBefore(new DateTime(1000));
+        dnfClause.withEndBefore(new DateTime(10000));
 
         // WHEN
         Collection<TimeTrackingItem> result = sut.queryItems(dnfClause);

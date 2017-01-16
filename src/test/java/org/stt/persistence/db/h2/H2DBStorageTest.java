@@ -79,7 +79,7 @@ public class H2DBStorageTest {
 
         // GIVEN
         TimeTrackingItem theItem = new TimeTrackingItem("the comment",
-                DateTime.now());
+                DateTime.now().withMillisOfSecond(0));
 
         // WHEN
         sut.insertItemInDB(theItem);
@@ -135,7 +135,7 @@ public class H2DBStorageTest {
         // GIVEN
         TimeTrackingItem theItem = new TimeTrackingItem(
                 "this is\n a multiline\r string\r\n with different separators",
-                DateTime.now());
+                DateTime.now().withMillisOfSecond(0));
 
         // WHEN
         sut.insertItemInDB(theItem);

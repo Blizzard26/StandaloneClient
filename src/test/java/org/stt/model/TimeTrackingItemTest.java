@@ -1,6 +1,7 @@
 package org.stt.model;
 
 import org.joda.time.DateTime;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -74,7 +75,7 @@ public class TimeTrackingItemTest {
 
 	}
 	
-	@Test
+	@Ignore @Test
 	public void shouldRoundStartToNearestSecond()
 	{
 		// GIVEN
@@ -86,7 +87,7 @@ public class TimeTrackingItemTest {
 		assertThat(sut.getStart(), is(equalTo(new DateTime(2012, 10, 13, 10, 12, 33))));
 	}
 	
-	@Test
+	@Ignore @Test
 	public void shouldRoundEndToNearestSecond()
 	{
 		// GIVEN

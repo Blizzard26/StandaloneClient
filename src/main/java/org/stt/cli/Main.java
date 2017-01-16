@@ -23,6 +23,7 @@ import org.stt.command.ResumeCommand;
 import org.stt.command.ToItemWriterCommandHandler;
 import org.stt.config.ConfigModule;
 import org.stt.event.EventBusAware;
+import org.stt.event.EventBusModule;
 import org.stt.model.TimeTrackingItem;
 import org.stt.persistence.IOUtil;
 import org.stt.persistence.ItemPersister;
@@ -65,7 +66,7 @@ public class Main {
 	 */
 	public static void main(String[] args) throws IOException {
         LOG.info("Starting injector");
-        Injector injector = Guice.createInjector(new H2PersistenceModule(), new BaseModule(),  new TextModule(), new ConfigModule());
+        Injector injector = Guice.createInjector(new H2PersistenceModule(), new BaseModule(),  new TextModule(), new ConfigModule(), new EventBusModule());
 		
 		// apply the desired encoding for all System.out calls
 		// this is necessary if one wants to output non ASCII
