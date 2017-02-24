@@ -207,6 +207,16 @@ public class ReportWindowBuilder {
             item.loggedProperty().addListener((obs, wasLogged, isNowLogged) -> {
                 if (isNowLogged) {
                     getChildren().forEach(child -> child.getValue().setLogged(true));
+                    
+                    TreeItem<ReportItem> parent = getParent();
+                    if (parent != null)
+                    {
+                    	if (parent.getChildren().stream().allMatch(ti -> ti.getValue().isLogged()))
+                    	{
+                    		parent.getValue().setLogged(true);
+                    	}
+                    }
+                    
                 }
             });
 		}
