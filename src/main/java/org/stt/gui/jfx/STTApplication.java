@@ -59,14 +59,15 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.sun.javafx.application.PlatformImpl;
 
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.ListBinding;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
@@ -81,6 +82,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.IndexRange;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
@@ -108,6 +110,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
             .observableArrayList();
     final StringProperty currentCommand = new SimpleStringProperty("");
     final IntegerProperty commandCaretPosition = new SimpleIntegerProperty();
+    final ObjectProperty<IndexRange> selectionRange = new SimpleObjectProperty<IndexRange>();
     private final CommandParser commandParser;
     private final ReportWindowBuilder reportWindowBuilder;
     private final Set<ExpansionProvider> expansionProviders;
@@ -197,8 +200,9 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 
     private void setCommandText(String textToSet, int caretPosition) {
         currentCommand.set(textToSet);
-        commandCaretPosition.set(caretPosition);
+        selectionRange.set(new IndexRange(0, caretPosition));
     }
+
 
     protected void insertAtCaret(String text) {
         int caretPosition = commandCaretPosition.get();
@@ -252,7 +256,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     protected boolean executeCommand() {
         final String text = currentCommand.get();
         if (!text.trim().isEmpty()) {
-            Command command = commandParser
+			Command command = commandParser
                     .parseCommandString(text).or(NothingCommand.INSTANCE);
             if (command instanceof NewItemCommand) {
                 TimeTrackingItem newItem = ((NewItemCommand) command).newItem;
@@ -321,8 +325,9 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     public void edit(TimeTrackingItem item) {
         setCommandText(CommandParser.itemToCommand(item), item.getComment().or("").length());
     }
+    
 
-    @Override
+	@Override
     public void delete(TimeTrackingItem item) {
         checkNotNull(item);
         if (!askBeforeDeleting || sttOptionDialogs.showDeleteOrKeepDialog(viewAdapter.stage, item) == Result.PERFORM_ACTION) {
@@ -364,8 +369,8 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 
         @FXML
         TextArea commandText;
-
-        @FXML
+        
+        @FXML 
         Button finButton;
 
         @FXML
@@ -438,7 +443,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                         event.consume();
                         if (currentCommand.getValue().length() > 0)
                         {
-                        	currentCommand.setValue("");
+                        	clearCommand();
                         } else
 							commandFinished();
                         
@@ -597,10 +602,24 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                                     .getCaretPosition());
                         }
                     });
+            selectionRange.addListener(new InvalidationListener() {
+				
+				@Override
+				public void invalidated(Observable observable) {
+					commandText.selectRange(selectionRange.get().getStart(), selectionRange.get().getEnd());
+					
+				}
+			});
+            commandText.selectedTextProperty().addListener(new InvalidationListener() {
+				@Override
+				public void invalidated(Observable observable) {
+					selectionRange.set(commandText.getSelection());
+				}
+			});
         }
 
         protected void requestFocusOnCommandText() {
-            PlatformImpl.runLater(new Runnable() {
+            Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
                     commandText.requestFocus();
@@ -610,7 +629,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 
         protected void updateAllItems(
                 final Collection<TimeTrackingItem> updateWith) {
-            PlatformImpl.runLater(new Runnable() {
+            Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
                     allItems.setAll(updateWith);
