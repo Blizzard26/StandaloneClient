@@ -272,7 +272,7 @@ public class SystemTrayIcon {
 	
 	private void updateTooltip(Optional<TimeTrackingItem> activeItem) {
 		StringBuilder s = new StringBuilder();
-		s.append(SIMPLE_TIME_TRACKING);
+		s.append(i18n.getString("window.title"));
 		if (activeItem.isPresent())
 		{
 			s.append(System.lineSeparator());
