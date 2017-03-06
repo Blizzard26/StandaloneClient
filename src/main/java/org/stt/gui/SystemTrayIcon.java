@@ -7,18 +7,24 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
+import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.stt.Configuration;
 import org.stt.command.CommandParser;
 import org.stt.event.ShuttingDown;
+import org.stt.event.TimePassedEvent;
 import org.stt.gui.jfx.LogWorkWindowBuilder;
 import org.stt.model.FileChanged;
+import org.stt.model.ItemModified;
 import org.stt.model.TimeTrackingItem;
 import org.stt.query.TimeTrackingItemQueries;
+import org.stt.query.WorkTimeQueries;
 
 import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
@@ -31,8 +37,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.stage.Stage;
 
 public class SystemTrayIcon {
-
-	private static final String SIMPLE_TIME_TRACKING = "SimpleTimeTracking";
 
 	private Logger LOG = Logger.getLogger(SystemTrayIcon.class.getName());
 	
@@ -49,14 +53,27 @@ public class SystemTrayIcon {
 
 	private Optional<TimeTrackingItem> activeItem = Optional.<TimeTrackingItem> absent();
 
+	private WorkTimeQueries workTimeQueries;
+
+	private ResourceBundle i18n;
+
+	private DateTime lastDailyWorktimeNotification;
+
+	private DateTime lastWeekWorktimeNotification;
+
 	@Inject
-	public SystemTrayIcon(Configuration configuration,
+	public SystemTrayIcon(ResourceBundle i18n, 
+			Configuration configuration,
 			EventBus eventBus,
 			TimeTrackingItemQueries searcher,
+			WorkTimeQueries workTimeQueries,
 			LogWorkWindowBuilder logWorkWindowBuilder) {
+		
+		this.i18n = checkNotNull(i18n);
 		this.configuration = checkNotNull(configuration);
 		this.eventBus = checkNotNull(eventBus);	
 		this.searcher = checkNotNull(searcher);
+		this.workTimeQueries = checkNotNull(workTimeQueries);
 		this.logWorkWindowBuilder = checkNotNull(logWorkWindowBuilder);
 	}
 	
@@ -86,7 +103,7 @@ public class SystemTrayIcon {
             java.awt.Image image = ImageIO.read(imageLoc);
             trayIcon = new java.awt.TrayIcon(image);
             trayIcon.setImageAutoSize(true);
-            trayIcon.setToolTip(SIMPLE_TIME_TRACKING);
+            trayIcon.setToolTip(i18n.getString("window.title"));
 
             // if the user double-clicks on the tray icon, show the main app stage.
             trayIcon.addActionListener(event -> {
@@ -132,7 +149,7 @@ public class SystemTrayIcon {
 
             // if the user selects the default menu item (which includes the app name), 
             // show the main app stage.
-            java.awt.MenuItem openItem = new java.awt.MenuItem(SIMPLE_TIME_TRACKING);
+            java.awt.MenuItem openItem = new java.awt.MenuItem(i18n.getString("window.title"));
             openItem.addActionListener(event -> {
             		Platform.runLater(this::showStage);
             });
@@ -144,14 +161,14 @@ public class SystemTrayIcon {
             java.awt.Font boldFont = defaultFont.deriveFont(java.awt.Font.BOLD);
             openItem.setFont(boldFont);
 
-            java.awt.MenuItem logItem = new java.awt.MenuItem("Log Work");
+            java.awt.MenuItem logItem = new java.awt.MenuItem(i18n.getString("logWork"));
             logItem.addActionListener(event -> Platform.runLater(this::showLogWorkWindow));
 
             
             // to really exit the application, the user must go to the system tray icon
             // and select the exit option, this will shutdown JavaFX and remove the
             // tray icon (removing the tray icon will also shut down AWT).
-            java.awt.MenuItem exitItem = new java.awt.MenuItem("Exit");
+            java.awt.MenuItem exitItem = new java.awt.MenuItem(i18n.getString("exit"));
             exitItem.addActionListener(event -> {
                 //notificationTimer.cancel();
             	tray.remove(trayIcon);
@@ -206,8 +223,8 @@ public class SystemTrayIcon {
         {
         	TimeTrackingItem timeTrackingItem = currentTimeTrackingitem.get();
         	StringBuilder stringBuilder = new StringBuilder();
-			printItem(stringBuilder, timeTrackingItem);
-			trayIcon.displayMessage(SIMPLE_TIME_TRACKING, stringBuilder.toString(), 
+			stringBuilder.append(i18n.getString("onItem")).append(" ").append(CommandParser.itemToCommand(timeTrackingItem));
+			trayIcon.displayMessage(i18n.getString("window.title"), stringBuilder.toString(), 
         			java.awt.TrayIcon.MessageType.INFO); 
         }
         activeItem = currentTimeTrackingitem;
@@ -218,6 +235,40 @@ public class SystemTrayIcon {
 	private StringBuilder printItem(StringBuilder stringBuilder, TimeTrackingItem timeTrackingItem) {
 		return stringBuilder.append("on ").append(CommandParser.itemToCommand(timeTrackingItem));
 	}
+    
+    @Subscribe
+    public void timePassed(TimePassedEvent event) {
+    	checkWorktime();
+    }
+
+	@Subscribe
+    public void updateOnModification(ItemModified event) {
+		checkWorktime();
+    }
+
+    
+    private void checkWorktime() {
+		Duration remainingWorktimeToday = workTimeQueries.queryRemainingWorktimeToday();
+		if (remainingWorktimeToday.isEqual(Duration.ZERO) 
+				&& (lastDailyWorktimeNotification == null || lastDailyWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
+		{
+			trayIcon.displayMessage(i18n.getString("window.title"), 
+					i18n.getString("achievement.worktimeTodayReached"), 
+					java.awt.TrayIcon.MessageType.INFO);
+			lastDailyWorktimeNotification = DateTime.now();
+		}
+		
+		Duration remainingWorktimeWeek = workTimeQueries.queryWeekWorktime();
+		if (remainingWorktimeWeek.isEqual(Duration.ZERO) 
+				&& (lastWeekWorktimeNotification == null || lastWeekWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
+		{
+			trayIcon.displayMessage(i18n.getString("window.title"), 
+					i18n.getString("achievement.worktimeWeekReached"), 
+					java.awt.TrayIcon.MessageType.INFO);
+			lastWeekWorktimeNotification = DateTime.now();
+		}
+	}
+	
 	
 	private void updateTooltip(Optional<TimeTrackingItem> activeItem) {
 		StringBuilder s = new StringBuilder();
