@@ -32,6 +32,8 @@ import javafx.stage.Stage;
 
 public class SystemTrayIcon {
 
+	private static final String SIMPLE_TIME_TRACKING = "SimpleTimeTracking";
+
 	private Logger LOG = Logger.getLogger(SystemTrayIcon.class.getName());
 	
 	private Stage primaryStage;
@@ -84,14 +86,18 @@ public class SystemTrayIcon {
             java.awt.Image image = ImageIO.read(imageLoc);
             trayIcon = new java.awt.TrayIcon(image);
             trayIcon.setImageAutoSize(true);
-            trayIcon.setToolTip("SimpleTimeTracking");
+            trayIcon.setToolTip(SIMPLE_TIME_TRACKING);
 
             // if the user double-clicks on the tray icon, show the main app stage.
             trayIcon.addActionListener(event -> {
-	        	if (primaryStage.isShowing())
-	        		Platform.runLater(() -> primaryStage.setIconified(true));
-	        	else
-	        		Platform.runLater(this::showStage);
+	        	try {
+					if (primaryStage.isShowing())
+						Platform.runLater(this::hideStage);
+					else
+						Platform.runLater(this::showStage);
+				} catch (Exception e) {
+					LOG.log(Level.SEVERE, "Exception while executing TrayIcon action", e);
+				}
             });
             trayIcon.addMouseListener(new MouseListener() {
 				
@@ -126,7 +132,7 @@ public class SystemTrayIcon {
 
             // if the user selects the default menu item (which includes the app name), 
             // show the main app stage.
-            java.awt.MenuItem openItem = new java.awt.MenuItem("SimpleTimeTracking");
+            java.awt.MenuItem openItem = new java.awt.MenuItem(SIMPLE_TIME_TRACKING);
             openItem.addActionListener(event -> {
             		Platform.runLater(this::showStage);
             });
@@ -189,6 +195,9 @@ public class SystemTrayIcon {
         }
 	}
 
+
+
+
     @Subscribe
     public void onFileChanged(FileChanged event) {
         Optional<TimeTrackingItem> currentTimeTrackingitem = searcher.getCurrentTimeTrackingitem();
@@ -197,15 +206,32 @@ public class SystemTrayIcon {
         {
         	TimeTrackingItem timeTrackingItem = currentTimeTrackingitem.get();
         	StringBuilder stringBuilder = new StringBuilder();
-			stringBuilder.append("on ").append(CommandParser.itemToCommand(timeTrackingItem));
-			trayIcon.displayMessage("SimpleTimeTracking", stringBuilder.toString(), 
+			printItem(stringBuilder, timeTrackingItem);
+			trayIcon.displayMessage(SIMPLE_TIME_TRACKING, stringBuilder.toString(), 
         			java.awt.TrayIcon.MessageType.INFO); 
         }
         activeItem = currentTimeTrackingitem;
-        
-
+        updateTooltip(activeItem);
     }
+
+
+	private StringBuilder printItem(StringBuilder stringBuilder, TimeTrackingItem timeTrackingItem) {
+		return stringBuilder.append("on ").append(CommandParser.itemToCommand(timeTrackingItem));
+	}
 	
+	private void updateTooltip(Optional<TimeTrackingItem> activeItem) {
+		StringBuilder s = new StringBuilder();
+		s.append(SIMPLE_TIME_TRACKING);
+		if (activeItem.isPresent())
+		{
+			s.append(System.lineSeparator());
+			printItem(s, activeItem.get());
+		}
+		
+		trayIcon.setToolTip(s.toString());
+	}
+
+
 	private void exit() {
 		Platform.setImplicitExit(true);
 		primaryStage.close();
@@ -230,10 +256,33 @@ public class SystemTrayIcon {
 	}
 
 	private void showStage() {
-		if (primaryStage != null) {
-			primaryStage.show();
-			primaryStage.setIconified(false);
-			primaryStage.toFront();
+		try
+		{
+			if (primaryStage != null) {
+				primaryStage.show();
+				primaryStage.setIconified(false);
+				primaryStage.toFront();
+			}
+		} 
+		catch (Exception e)
+		{
+			LOG.log(Level.SEVERE, "Exceptiong while showing stage", e);
+			throw e;
+		}
+	}
+	
+	private void hideStage() {
+		try
+		{
+			if (primaryStage != null)
+			{
+				primaryStage.setIconified(true);
+			}
+		}
+		catch (Exception e)
+		{
+			LOG.log(Level.SEVERE, "Exception while hiding stage", e);
+			throw e;
 		}
 	}
 
