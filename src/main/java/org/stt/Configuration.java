@@ -34,6 +34,8 @@ import com.google.inject.Singleton;
 public class Configuration {
 
     
+	private static final String STTRC = ".sttrc";
+
 	private static final Logger LOG = Logger.getLogger(Configuration.class
             .getName());
     
@@ -64,48 +66,44 @@ public class Configuration {
 
     @SuppressWarnings("PMD.CollapsibleIfStatements")
     public File determineBaseDir() {
+    	File homeDirectory = null;
+    	
         String envHOMEVariable = System.getenv("HOME");
-        if (envHOMEVariable != null) {
-            File homeDirectory = new File(envHOMEVariable);
+        if (envHOMEVariable != null && !envHOMEVariable.trim().equals("")) {
+			homeDirectory = new File(envHOMEVariable);
             if (homeDirectory.exists()) {
-                return homeDirectory;
+            	// Check if config file exists in %HOME%
+            	if (checkForConfigFile(homeDirectory))
+            		return homeDirectory;
+            }
+            else
+            {
+            	homeDirectory = null;
             }
         }
-        File homeDir = new File(System.getProperty("user.home"));
-        File baseDir = new File(homeDir, STT_DIRECTORY);
         
-        if (baseDir.isFile())
+        // Check if config file exists in user home
+        File homeDir = new File(System.getProperty("user.home"));
+        if (checkForConfigFile(homeDir))
         {
-        	// Migrate from old to new structure
-        	
-        	File tempDir = new File(homeDir, STT_DIRECTORY + "_new");
-        	
-        	if (!tempDir.exists())
-        	{
-        		if (!tempDir.mkdir())
-        			throw new RuntimeException("Could not create temporary directory. Please ensure you have write access to "+tempDir.getAbsolutePath());
-        	}
-        	
-        	File[] fileList = homeDir.listFiles(new PatternFilenameFilter("\\.?stt.*"));
-        	
-        	if (fileList == null)
-        		throw new IllegalStateException("Cannot enumerate files in " + homeDir.getAbsolutePath());
-        	
-			for (File file : fileList)
-        	{
-        		if (!file.equals(tempDir))
-        		{
-	        		File destination = new File(tempDir, file.getName());
-					if (!file.renameTo(destination))
-						throw new RuntimeException("Cannot move file " + file.getAbsolutePath() + " to " + destination.getAbsolutePath());
-        		}
-        	}
-        	
-        	if (!tempDir.renameTo(baseDir))
-        		throw new RuntimeException("Cannot move temporary directory " + tempDir.getAbsolutePath() + " to " + baseDir.getAbsolutePath());
+        	return homeDir;
         }
         
-    	if (!baseDir.exists())
+        // Check if config file exists in user_home/.stt/
+        File baseDir = new File(homeDir, STT_DIRECTORY);
+        if (checkForConfigFile(baseDir))
+        {
+        	return baseDir;
+        }
+        
+        // If home is defined use $HOME$
+        if (homeDirectory != null)
+        {
+        	return homeDirectory;
+        }
+        
+        // Else use base dir
+        if (!baseDir.exists())
     	{
     		if (!baseDir.mkdir())
                 throw new RuntimeException("Cannot create stt dir");
@@ -113,6 +111,12 @@ public class Configuration {
     		
 		return baseDir;
     }
+
+	private boolean checkForConfigFile(File homeDirectory) {
+		File sttFile = new File(homeDirectory, STTRC);
+		boolean fileExists = sttFile.exists() && sttFile.isFile();
+		return fileExists;
+	}
 
     private void createSttrc() {
 
@@ -130,7 +134,7 @@ public class Configuration {
     }
 
     private File getPropertiesFile() {
-        return new File(determineBaseDir(), ".sttrc");
+        return new File(determineBaseDir(), STTRC);
     }
 
     /**
