@@ -258,7 +258,7 @@ public class SystemTrayIcon {
 			lastDailyWorktimeNotification = DateTime.now();
 		}
 		
-		Duration remainingWorktimeWeek = workTimeQueries.queryWeekWorktime();
+		Duration remainingWorktimeWeek = workTimeQueries.queryRemainingWorktimeWeek();
 		if (remainingWorktimeWeek.isEqual(Duration.ZERO) 
 				&& (lastWeekWorktimeNotification == null || lastWeekWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
 		{

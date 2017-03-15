@@ -62,6 +62,11 @@ public class WorkingtimeItemProvider {
 		return workingHours;
 	}
 
+	public WorkingtimeItem getDefaultTimeFor(int dayOfWeek)
+	{
+		return defaultWorkingHours.get(dayOfWeek);
+	}
+	
 	private void populateHoursMapsFromFile(File workingTimesFile) {
 
 		// some defaults
@@ -70,7 +75,7 @@ public class WorkingtimeItemProvider {
 		defaultWorkingHours.put(DateTimeConstants.WEDNESDAY, fromHours("8"));
 		defaultWorkingHours.put(DateTimeConstants.THURSDAY, fromHours("8"));
 		defaultWorkingHours.put(DateTimeConstants.FRIDAY, fromHours("8"));
-		defaultWorkingHours.put(DateTimeConstants.SATURDAY, fromHours("8"));
+		defaultWorkingHours.put(DateTimeConstants.SATURDAY, fromHours("0"));
 		defaultWorkingHours.put(DateTimeConstants.SUNDAY, fromHours("0"));
 
 		// end defaults
