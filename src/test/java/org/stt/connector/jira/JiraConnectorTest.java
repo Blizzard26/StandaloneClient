@@ -108,6 +108,16 @@ public class JiraConnectorTest {
 		sut.start();
 		
 		@SuppressWarnings("unchecked")
+		Promise<Iterable<BasicProject>> projectPromise = Mockito.mock(Promise.class);
+		
+		List<BasicProject> projectList = new ArrayList<>();
+		projectList.add(new BasicProject(new URI("https://jira.atlassian.com"), "JRA", 1L, "JRA"));
+		
+		given(projectPromise.get(anyLong(), any(TimeUnit.class))).willReturn(projectList);
+		
+		given(projectClient.getAllProjects()).willReturn(projectPromise);
+		
+		@SuppressWarnings("unchecked")
 		Promise<Issue> issuePromise = Mockito.mock(Promise.class);
 		
 		Issue issueInject = new Issue("Test", new URI("https://jira.atlassion.com"), "JRA-1", 15L, null, null, null,
