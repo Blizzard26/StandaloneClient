@@ -10,6 +10,7 @@ import org.joda.time.Period;
 import org.stt.Service;
 import org.stt.event.TimePassedEvent;
 import org.stt.gui.Notification;
+import org.stt.model.CurrentItemChanged;
 import org.stt.model.FileChanged;
 import org.stt.model.ItemModified;
 import org.stt.query.TimeTrackingItemQueries;
@@ -49,6 +50,13 @@ public class WorkStatusService implements Service {
 		eventBus.unregister(this);
 	}
 
+	@Subscribe
+	public void onCurrentItemChanged(CurrentItemChanged event)
+	{
+		updateWorktime();
+		checkWorktime();
+	}
+	
 	@Subscribe
 	public void onFileChanged(FileChanged event) {
 		updateWorktime();

@@ -29,7 +29,7 @@ public class StatusNotificationServiceModule extends AbstractModule {
 			EventBus eventBus, Notification notification, 
 			TimeTrackingItemQueries timeTrackingItemQueries)
 	{
-		return new CurrentItemStatusService(i18n, eventBus, timeTrackingItemQueries, notification);
+		return new CurrentItemStatusService(i18n, eventBus, notification);
 	}
 
 }

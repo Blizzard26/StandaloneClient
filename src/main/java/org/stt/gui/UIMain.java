@@ -15,6 +15,7 @@ import org.stt.Service;
 import org.stt.config.ConfigModule;
 import org.stt.config.YamlConfigService;
 import org.stt.connector.jira.JiraConnector;
+import org.stt.event.CurrentItemChangeListenerService;
 import org.stt.event.EventBusModule;
 import org.stt.event.FileChangeListenerService;
 import org.stt.event.ItemLogService;
@@ -101,6 +102,7 @@ public class UIMain extends Application {
         startServiceInBackground(injector, AchievementService.class);
         startService(injector, ItemLogService.class);
         startServiceInBackground(injector, FileChangeListenerService.class);
+        startServiceInBackground(injector, CurrentItemChangeListenerService.class);
         startService(injector, JiraConnector.class);
 
         
