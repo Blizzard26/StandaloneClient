@@ -1,6 +1,7 @@
 package org.stt.connector.jira;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -90,10 +91,18 @@ public class JiraConnector implements Service {
 		}
 	}
 	
-	public Issue getIssue(String issueKey)
+	public Issue getIssue(String issueKey) throws JiraConnectorException // TODO use Optional<Issue>
 	{	
 		if (client != null)
 		{
+			String projectKey = getProjectKey(issueKey);
+			
+			// Check if the given project key belongs to an existing project
+			if (!projectExists(projectKey))
+			{
+				return null;
+			}
+			
 			try 
 			{
 				IssueRestClient issueClient = client.getIssueClient();
@@ -103,18 +112,26 @@ public class JiraConnector implements Service {
 				
 				return jiraIssue;
 			} 
-			catch (InterruptedException e) 
-			{
-				LOG.log(Level.WARNING, "Exception while retrieving issue", e);
+			catch (InterruptedException e) {
+				LOG.log(Level.WARNING, "InterruptedException while retrieving issue", e);
+				// Ignore and continue
 				return null;
 			} catch (ExecutionException e) {
-				//LOG.log(Level.WARNING, "Exception while retrieving issue", e);
-				return null;
-			} catch (RestClientException e) {
-				//LOG.log(Level.WARNING, "Exception while retrieving issue", e);
+				if (e.getCause() instanceof RestClientException)
+				{
+					handleRestClientException((RestClientException) e.getCause());
+				}
+				else
+				{
+					LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
+				}
+				
 				return null;
 			} catch (TimeoutException e) {
-				LOG.log(Level.WARNING, "Timeout while retrieving issue", e);
+				LOG.log(Level.WARNING, "TimeoutException while retrieving issue", e);
+				throw new JiraConnectorException("Connection Timeout", e);
+			} catch (RestClientException e) {
+				handleRestClientException(e);
 				return null;
 			}
 		}
@@ -124,27 +141,33 @@ public class JiraConnector implements Service {
 		}
 	}
 	
-	public Collection<Issue> getIssues(String issueKeyPrefix) 
+	private void handleRestClientException(RestClientException e) {
+		LOG.log(Level.WARNING, "RestClientException while retrieving issue", e);
+		if (e.getStatusCode().isPresent())
+		{
+			switch (e.getStatusCode().get().intValue())
+			{
+			
+			case HttpURLConnection.HTTP_FORBIDDEN: // 403
+				// TODO throw exception -> wrong / missing credentials
+				break;
+			case HttpURLConnection.HTTP_NOT_FOUND: // 404
+				break;
+			}
+		}
+		
+	}
+
+	public Collection<Issue> getIssues(String issueKeyPrefix) throws JiraConnectorException 
 	{
 		List<Issue> resultList = new ArrayList<>();
 		
 		if (client != null)
 		{
-			int index = issueKeyPrefix.lastIndexOf('-');
-			
-			// Extract the project key
-			String projectKey;
-			if (index > 0)
-			{
-				projectKey = issueKeyPrefix.substring(0, index);
-			}
-			else
-			{
-				projectKey = issueKeyPrefix;
-			}
+			String projectKey = getProjectKey(issueKeyPrefix);
 			
 			// Check if the given project key belongs to an existing project
-			if (!getProjectNames().contains(projectKey))
+			if (!projectExists(projectKey))
 			{
 				return Collections.emptyList();
 			}
@@ -158,9 +181,20 @@ public class JiraConnector implements Service {
 			{
 				searchResult = searchResultPromise.get(30, TimeUnit.SECONDS);
 			} 
-			catch (InterruptedException | ExecutionException | TimeoutException e) 
+			catch (InterruptedException e) 
 			{
+				// TODO throw exception Timeout
 				LOG.log(Level.WARNING, "Exception while retrieving issues", e);
+				return Collections.emptyList();
+			} catch (TimeoutException e) {
+				LOG.log(Level.WARNING, "Exception while retrieving issues", e);
+				throw new JiraConnectorException("Connection Timeout", e);
+			} catch (ExecutionException e) {
+				if (e.getCause() instanceof RestClientException) {
+					handleRestClientException((RestClientException) e.getCause());
+				} else {
+					LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
+				}
 				return Collections.emptyList();
 			}
 			
@@ -179,8 +213,28 @@ public class JiraConnector implements Service {
 		
 		return resultList;
 	}
+
+	private boolean projectExists(String projectKey) throws JiraConnectorException {
+		return getProjectNames().contains(projectKey);
+	}
+
+	private String getProjectKey(String issueKey) {
+		int index = issueKey.lastIndexOf('-');
+		
+		// Extract the project key
+		String projectKey;
+		if (index > 0)
+		{
+			projectKey = issueKey.substring(0, index);
+		}
+		else
+		{
+			projectKey = issueKey;
+		}
+		return projectKey;
+	}
 	
-	public Set<String> getProjectNames()
+	public Set<String> getProjectNames() throws JiraConnectorException
 	{
 		if (projectsCache == null)
 		{
@@ -189,7 +243,7 @@ public class JiraConnector implements Service {
 		return projectsCache;
 	}
 
-	private Set<String> internalGetProjectNames() 
+	private Set<String> internalGetProjectNames() throws JiraConnectorException 
 	{
 		Set<String> projects = new HashSet<>();
 		if (client != null)
@@ -203,9 +257,18 @@ public class JiraConnector implements Service {
 			{
 				projectsIterable = projectsPromise.get(5000, TimeUnit.MILLISECONDS);
 			} 
-			catch (InterruptedException | ExecutionException | TimeoutException e) 
-			{
+			catch (InterruptedException e) {
 				LOG.log(Level.WARNING, "Exception while retrieving projects", e);
+				return Collections.emptySet();
+			} catch (TimeoutException e) {
+				LOG.log(Level.WARNING, "Exception while retrieving projects", e);
+				throw new JiraConnectorException("Connection Timeout", e);
+			} catch (ExecutionException e) {
+				if (e.getCause() instanceof RestClientException) {
+					handleRestClientException((RestClientException) e.getCause());
+				} else {
+					LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
+				}
 				return Collections.emptySet();
 			}
 			

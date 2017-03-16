@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.stt.connector.jira.JiraConnector;
+import org.stt.gui.Notification;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
 
@@ -18,6 +19,9 @@ public class JiraExpansionProviderTest {
 	
 	@Mock
 	JiraConnector jiraConnector;
+	
+	@Mock
+	Notification notification;
 	
 	@Mock
 	Issue issue;
@@ -37,7 +41,7 @@ public class JiraExpansionProviderTest {
 	@Test
 	public void testGetPossibleExpansions() {
 		// GIVEN
-		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
+		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector, notification);
 		
 		// WHEN
 		List<String> matches = sut.getPossibleExpansions("JRA-7");
@@ -52,7 +56,7 @@ public class JiraExpansionProviderTest {
 	@Test
 	public void testGetPossibleExpansionsShouldHandleSubstring() {
 		// GIVEN
-		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
+		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector, notification);
 		
 		// WHEN
 		List<String> matches = sut.getPossibleExpansions("Test JRA-7");
@@ -66,7 +70,7 @@ public class JiraExpansionProviderTest {
 	@Test
 	public void testGetPossibleExpansionsShouldHandleSpace() {
 		// GIVEN
-		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector);
+		JiraExpansionProvider sut = new JiraExpansionProvider(jiraConnector, notification);
 		
 		// WHEN
 		List<String> matches = sut.getPossibleExpansions(" JRA-7 ");
