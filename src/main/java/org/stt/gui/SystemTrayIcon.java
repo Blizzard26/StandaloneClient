@@ -3,6 +3,7 @@ package org.stt.gui;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.awt.SystemTray;
+import java.awt.TrayIcon.MessageType;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
@@ -30,13 +31,15 @@ import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.stage.Stage;
 
-public class SystemTrayIcon {
+@Singleton
+public class SystemTrayIcon implements Notification {
 
 	private Logger LOG = Logger.getLogger(SystemTrayIcon.class.getName());
 	
@@ -224,8 +227,7 @@ public class SystemTrayIcon {
         	TimeTrackingItem timeTrackingItem = currentTimeTrackingitem.get();
         	StringBuilder stringBuilder = new StringBuilder();
 			stringBuilder.append(i18n.getString("onItem")).append(" ").append(CommandParser.itemToCommand(timeTrackingItem));
-			trayIcon.displayMessage(i18n.getString("window.title"), stringBuilder.toString(), 
-        			java.awt.TrayIcon.MessageType.INFO); 
+			info(stringBuilder.toString());
         }
         activeItem = currentTimeTrackingitem;
         updateTooltip(activeItem);
@@ -252,9 +254,7 @@ public class SystemTrayIcon {
 		if (remainingWorktimeToday.isEqual(Duration.ZERO) 
 				&& (lastDailyWorktimeNotification == null || lastDailyWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
 		{
-			trayIcon.displayMessage(i18n.getString("window.title"), 
-					i18n.getString("achievement.worktimeTodayReached"), 
-					java.awt.TrayIcon.MessageType.INFO);
+			info(i18n.getString("achievement.worktimeTodayReached"));
 			lastDailyWorktimeNotification = DateTime.now();
 		}
 		
@@ -262,9 +262,8 @@ public class SystemTrayIcon {
 		if (remainingWorktimeWeek.isEqual(Duration.ZERO) 
 				&& (lastWeekWorktimeNotification == null || lastWeekWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
 		{
-			trayIcon.displayMessage(i18n.getString("window.title"), 
-					i18n.getString("achievement.worktimeWeekReached"), 
-					java.awt.TrayIcon.MessageType.INFO);
+			
+			info(i18n.getString("achievement.worktimeWeekReached"));
 			lastWeekWorktimeNotification = DateTime.now();
 		}
 	}
@@ -335,6 +334,37 @@ public class SystemTrayIcon {
 			LOG.log(Level.SEVERE, "Exception while hiding stage", e);
 			throw e;
 		}
+	}
+
+
+	@Override
+	public void error(String errorMessage) {
+		trayIcon.displayMessage(i18n.getString("window.title"), 
+				errorMessage, 
+				java.awt.TrayIcon.MessageType.ERROR);
+	}
+
+
+	@Override
+	public void warning(String warningMessage) {
+		trayIcon.displayMessage(i18n.getString("window.title"), 
+				warningMessage, 
+				java.awt.TrayIcon.MessageType.WARNING);
+	}
+
+
+	@Override
+	public void info(String infoMessage) {
+		trayIcon.displayMessage(i18n.getString("window.title"), 
+				infoMessage, 
+				java.awt.TrayIcon.MessageType.INFO);
+	}
+	
+	public void displayMessage(String message, MessageType messageType)
+	{
+		trayIcon.displayMessage(i18n.getString("window.title"), 
+				message, 
+				messageType);
 	}
 
 

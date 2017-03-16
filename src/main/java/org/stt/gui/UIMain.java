@@ -71,7 +71,7 @@ public class UIMain extends Application {
         		new I18NModule(), new EventBusModule(), 
         		new AchievementModule(), new TextModule(),
                 new JFXModule(), new BaseModule(), 
-                new ConfigModule());
+                new ConfigModule(), new NotificationModule());
 
         LOG.info("Setting up event bus");
         eventBus = injector.getInstance(EventBus.class);
