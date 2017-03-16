@@ -15,14 +15,14 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 
-public class CurrentItemChangeListener implements Service {
+public class CurrentItemChangeListenerService implements Service {
 
 	private EventBus eventBus;
 	private TimeTrackingItemQueries timeTrackingItemQueries;
 	private Object currentItem;
 
 	@Inject
-	public CurrentItemChangeListener(EventBus eventBus, TimeTrackingItemQueries timeTrackingItemQueries) {
+	public CurrentItemChangeListenerService(EventBus eventBus, TimeTrackingItemQueries timeTrackingItemQueries) {
 		this.eventBus = checkNotNull(eventBus);
 		this.timeTrackingItemQueries = checkNotNull(timeTrackingItemQueries);
 	}
