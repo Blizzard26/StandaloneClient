@@ -11,4 +11,9 @@ public class ItemDeleted implements ItemModified {
     public ItemDeleted(TimeTrackingItem deletedItem) {
         this.deletedItem = checkNotNull(deletedItem);
     }
+    
+    public TimeTrackingItem getItem()
+    {
+    	return deletedItem;
+    }
 }

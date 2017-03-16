@@ -11,4 +11,9 @@ public class ItemInserted implements ItemModified {
     public ItemInserted(TimeTrackingItem newItem) {
         this.newItem = checkNotNull(newItem);
     }
+    
+    public TimeTrackingItem getItem()
+    {
+    	return newItem;
+    }
 }

@@ -13,4 +13,9 @@ public class ItemReplaced implements ItemModified {
         this.beforeUpdate = checkNotNull(beforeUpdate);
         this.afterUpdate = checkNotNull(afterUpdate);
     }
+    
+    public TimeTrackingItem getItem()
+    {
+    	return afterUpdate;
+    }
 }
