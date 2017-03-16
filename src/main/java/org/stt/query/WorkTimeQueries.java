@@ -43,18 +43,18 @@ public class WorkTimeQueries {
     public Duration queryRemainingWorktimeWeek() {
     	DateTime now = DateTime.now();
     	LocalDate today = now.toLocalDate();
-    	LocalDate startOfWeek = today.withDayOfWeek(0);
+    	LocalDate startOfWeek = today.withDayOfWeek(1);
     	LocalDate endOfWeek = startOfWeek.plusWeeks(1);
     	
     	// Get time worked so far this week
-    	Duration workedTime = queryWorktime(endOfWeek.toInterval().withEnd(now));
+    	Duration workedTime = queryWorktime(startOfWeek.toInterval().withEnd(now));
     	
     	// Calculated working time of week
     	Duration workingtime = Duration.ZERO;
     	LocalDate day = startOfWeek;
     	while (day.isBefore(endOfWeek))
     	{
-    		workingtime.plus(workingtimeItemProvider.getWorkingTimeFor(day).getMin());
+    		workingtime = workingtime.plus(workingtimeItemProvider.getWorkingTimeFor(day).getMin());
     		day = day.plusDays(1);
     	}
     	
