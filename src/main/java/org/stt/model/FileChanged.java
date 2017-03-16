@@ -4,7 +4,7 @@ import java.nio.file.Path;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class FileChanged implements ItemModified {
+public class FileChanged {
 
 	public final Path file;
 

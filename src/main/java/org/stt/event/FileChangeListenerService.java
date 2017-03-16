@@ -18,7 +18,6 @@ import java.util.logging.Logger;
 import org.stt.Service;
 import org.stt.model.FileChanged;
 import org.stt.persistence.DatabaseFile;
-import org.stt.persistence.stt.STTFile;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
@@ -35,20 +34,16 @@ public class FileChangeListenerService implements Service
 
 	private Path databaseFile;
 
-	static class WatchHandler extends Thread
+	class WatchHandler extends Thread
 	{
 		Logger LOG = Logger.getLogger(WatchHandler.class.getName());
 		
 		private Path fileToWatch;
-		private EventBus eventBus;
 		private WatchService watchService;
 
-		public WatchHandler(Path fileToWatch, WatchService watchService, EventBus eventBus) {
+		public WatchHandler(Path fileToWatch, WatchService watchService) {
 			this.fileToWatch = checkNotNull(fileToWatch);
 			this.watchService = checkNotNull(watchService);
-			this.eventBus = checkNotNull(eventBus);
-			
-
 		}
 		
 		@Override
@@ -78,8 +73,10 @@ public class FileChangeListenerService implements Service
 									
 									@Override
 									public void run() {
-										eventBus.post(new FileChanged(changedFile));
+										notifyFileChanged(changedFile);
 									}
+
+									
 								});
 								
 							}
@@ -108,7 +105,7 @@ public class FileChangeListenerService implements Service
 	public void start() throws Exception {
 		watchService = FileSystems.getDefault().newWatchService();
 		
-		WatchHandler handler = new WatchHandler(databaseFile, watchService, eventBus);
+		WatchHandler handler = new WatchHandler(databaseFile, watchService);
 		handler.start();
 	}
 
@@ -121,5 +118,9 @@ public class FileChangeListenerService implements Service
 			LOG.log(Level.SEVERE, "Exception while closing watch service", e);
 		}
 		watchService = null;
+	}
+	
+	protected void notifyFileChanged(Path changedFile) {
+		eventBus.post(new FileChanged(changedFile));
 	}
 }
