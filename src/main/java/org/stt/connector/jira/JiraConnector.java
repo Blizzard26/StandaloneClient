@@ -141,7 +141,7 @@ public class JiraConnector implements Service {
 		}
 	}
 	
-	private void handleRestClientException(RestClientException e) {
+	private void handleRestClientException(RestClientException e) throws JiraConnectorException {
 		LOG.log(Level.WARNING, "RestClientException while retrieving issue", e);
 		if (e.getStatusCode().isPresent())
 		{
@@ -149,11 +149,18 @@ public class JiraConnector implements Service {
 			{
 			
 			case HttpURLConnection.HTTP_FORBIDDEN: // 403
-				// TODO throw exception -> wrong / missing credentials
-				break;
+				throw new JiraConnectorException("Could not login to Jira, please check your credentials!", e);
 			case HttpURLConnection.HTTP_NOT_FOUND: // 404
+				// TODO how to discern normal "Http not found" from "Issue not found"?
+				// Ignore "Issue not found"
 				break;
+			default:
+				throw new JiraConnectorException("Jira Connector returned exception!", e);
 			}
+		}
+		else
+		{
+			throw new JiraConnectorException("Jira Connector returned exception!", e);
 		}
 		
 	}
