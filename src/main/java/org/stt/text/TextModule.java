@@ -22,10 +22,6 @@ public class TextModule extends AbstractModule {
         bind(ItemGrouper.class).to(SplitItemGrouper.class);
         //bind(ExpansionProvider.class).to(SplitItemGrouper.class);
         bind(ItemCategorizer.class).to(WorktimeCategorizer.class);
-
-    	Multibinder<ExpansionProvider> expansionProviderBinder = Multibinder.newSetBinder(binder(), ExpansionProvider.class);
-    	expansionProviderBinder.addBinding().to(SplitItemGrouper.class);
-    	expansionProviderBinder.addBinding().to(JiraExpansionProvider.class);
     }
 
     @Provides
