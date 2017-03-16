@@ -25,6 +25,11 @@ import org.stt.fun.AchievementService;
 import org.stt.gui.jfx.JFXModule;
 import org.stt.gui.jfx.STTApplication;
 import org.stt.gui.jfx.WorktimePaneBuilder;
+import org.stt.gui.systemtray.SystemTrayIcon;
+import org.stt.gui.systemtray.SystemTrayModule;
+import org.stt.notification.CurrentItemStatusService;
+import org.stt.notification.StatusNotificationServiceModule;
+import org.stt.notification.WorkStatusService;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.db.h2.H2BackupCreator;
 import org.stt.persistence.db.h2.H2PersistenceModule;
@@ -72,7 +77,8 @@ public class UIMain extends Application {
         		new I18NModule(), new EventBusModule(), 
         		new AchievementModule(), new TextModule(), new ExpansionModule(),
                 new JFXModule(), new BaseModule(), 
-                new ConfigModule(), new SystemTrayNotificationModule());
+                new ConfigModule(), new SystemTrayModule(),
+                new StatusNotificationServiceModule());
 
         LOG.info("Setting up event bus");
         eventBus = injector.getInstance(EventBus.class);
@@ -96,6 +102,7 @@ public class UIMain extends Application {
         startService(injector, ItemLogService.class);
         startServiceInBackground(injector, FileChangeListenerService.class);
         startService(injector, JiraConnector.class);
+
         
         application = injector.getInstance(STTApplication.class);
         eventBus.register(application);
@@ -104,6 +111,9 @@ public class UIMain extends Application {
         application.addAdditional(worktimePaneBuilder);
         
         systemTrayIcon = injector.getInstance(SystemTrayIcon.class);
+        
+        startServiceInBackground(injector, WorkStatusService.class);
+        startServiceInBackground(injector, CurrentItemStatusService.class);
         
         LOG.info("init() done");
     }

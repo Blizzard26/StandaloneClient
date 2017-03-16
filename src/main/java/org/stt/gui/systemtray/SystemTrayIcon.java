@@ -1,4 +1,4 @@
-package org.stt.gui;
+package org.stt.gui.systemtray;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -14,22 +14,12 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
 import org.stt.Configuration;
-import org.stt.command.CommandParser;
 import org.stt.event.ShuttingDown;
-import org.stt.event.TimePassedEvent;
+import org.stt.gui.Notification;
 import org.stt.gui.jfx.LogWorkWindowBuilder;
-import org.stt.model.FileChanged;
-import org.stt.model.ItemModified;
-import org.stt.model.TimeTrackingItem;
-import org.stt.query.TimeTrackingItemQueries;
-import org.stt.query.WorkTimeQueries;
 
-import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
@@ -49,35 +39,21 @@ public class SystemTrayIcon implements Notification {
 
 
 	private LogWorkWindowBuilder logWorkWindowBuilder;
-
-	private TimeTrackingItemQueries searcher;
-
+	
 	private Configuration configuration;
 
-	private Optional<TimeTrackingItem> activeItem = Optional.<TimeTrackingItem> absent();
-
-	private WorkTimeQueries workTimeQueries;
-
 	private ResourceBundle i18n;
-
-	private DateTime lastDailyWorktimeNotification;
-
-	private DateTime lastWeekWorktimeNotification;
 
 	@Inject
 	public SystemTrayIcon(ResourceBundle i18n, 
 			Configuration configuration,
-			EventBus eventBus,
-			TimeTrackingItemQueries searcher,
-			WorkTimeQueries workTimeQueries,
-			LogWorkWindowBuilder logWorkWindowBuilder) {
+			LogWorkWindowBuilder logWorkWindowBuilder,
+			EventBus eventBus) {
 		
 		this.i18n = checkNotNull(i18n);
 		this.configuration = checkNotNull(configuration);
-		this.eventBus = checkNotNull(eventBus);	
-		this.searcher = checkNotNull(searcher);
-		this.workTimeQueries = checkNotNull(workTimeQueries);
 		this.logWorkWindowBuilder = checkNotNull(logWorkWindowBuilder);
+		this.eventBus = checkNotNull(eventBus);
 	}
 	
 
@@ -88,7 +64,6 @@ public class SystemTrayIcon implements Notification {
 			return;
 		
 		
-		eventBus.register(this);
 		try {
             // ensure awt toolkit is initialized.
             java.awt.Toolkit.getDefaultToolkit();
@@ -106,7 +81,7 @@ public class SystemTrayIcon implements Notification {
             java.awt.Image image = ImageIO.read(imageLoc);
             trayIcon = new java.awt.TrayIcon(image);
             trayIcon.setImageAutoSize(true);
-            trayIcon.setToolTip(i18n.getString("window.title"));
+            setStatus(null);
 
             // if the user double-clicks on the tray icon, show the main app stage.
             trayIcon.addActionListener(event -> {
@@ -215,78 +190,13 @@ public class SystemTrayIcon implements Notification {
         }
 	}
 
-
-
-
-    @Subscribe
-    public void onFileChanged(FileChanged event) {
-        Optional<TimeTrackingItem> currentTimeTrackingitem = searcher.getCurrentTimeTrackingitem();
-        
-        if (currentTimeTrackingitem.isPresent() && !currentTimeTrackingitem.equals(activeItem))
-        {
-        	TimeTrackingItem timeTrackingItem = currentTimeTrackingitem.get();
-        	StringBuilder stringBuilder = new StringBuilder();
-			stringBuilder.append(i18n.getString("onItem")).append(" ").append(CommandParser.itemToCommand(timeTrackingItem));
-			info(stringBuilder.toString());
-        }
-        activeItem = currentTimeTrackingitem;
-        updateTooltip(activeItem);
-    }
-
-
-	private StringBuilder printItem(StringBuilder stringBuilder, TimeTrackingItem timeTrackingItem) {
-		return stringBuilder.append("on ").append(CommandParser.itemToCommand(timeTrackingItem));
-	}
-    
-    @Subscribe
-    public void timePassed(TimePassedEvent event) {
-    	checkWorktime();
-    }
-
-	@Subscribe
-    public void updateOnModification(ItemModified event) {
-		checkWorktime();
-    }
-
-    
-    private void checkWorktime() {
-		Duration remainingWorktimeToday = workTimeQueries.queryRemainingWorktimeToday();
-		if (remainingWorktimeToday.isEqual(Duration.ZERO) 
-				&& (lastDailyWorktimeNotification == null || lastDailyWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
-		{
-			info(i18n.getString("achievement.worktimeTodayReached"));
-			lastDailyWorktimeNotification = DateTime.now();
-		}
-		
-		Duration remainingWorktimeWeek = workTimeQueries.queryRemainingWorktimeWeek();
-		if (remainingWorktimeWeek.isEqual(Duration.ZERO) 
-				&& (lastWeekWorktimeNotification == null || lastWeekWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear()))
-		{
-			
-			info(i18n.getString("achievement.worktimeWeekReached"));
-			lastWeekWorktimeNotification = DateTime.now();
-		}
-	}
-	
-	
-	private void updateTooltip(Optional<TimeTrackingItem> activeItem) {
-		StringBuilder s = new StringBuilder();
-		s.append(i18n.getString("window.title"));
-		if (activeItem.isPresent())
-		{
-			s.append(System.lineSeparator());
-			printItem(s, activeItem.get());
-		}
-		
-		trayIcon.setToolTip(s.toString());
-	}
-
-
 	private void exit() {
-		Platform.setImplicitExit(true);
-		primaryStage.close();
-		Platform.exit();
-		eventBus.post(new ShuttingDown());
+		try {
+			primaryStage.close();
+			Platform.exit();
+		} finally {
+			eventBus.post(new ShuttingDown());
+		}
 	}
 
 	private void showLogWorkWindow() {
@@ -339,32 +249,40 @@ public class SystemTrayIcon implements Notification {
 
 	@Override
 	public void error(String errorMessage) {
-		trayIcon.displayMessage(i18n.getString("window.title"), 
-				errorMessage, 
-				java.awt.TrayIcon.MessageType.ERROR);
+		displayMessage(errorMessage, MessageType.ERROR);
 	}
 
 
 	@Override
 	public void warning(String warningMessage) {
-		trayIcon.displayMessage(i18n.getString("window.title"), 
-				warningMessage, 
-				java.awt.TrayIcon.MessageType.WARNING);
+		displayMessage(warningMessage, MessageType.WARNING);
 	}
 
 
 	@Override
 	public void info(String infoMessage) {
-		trayIcon.displayMessage(i18n.getString("window.title"), 
-				infoMessage, 
-				java.awt.TrayIcon.MessageType.INFO);
+		displayMessage(infoMessage, MessageType.INFO);
 	}
 	
-	public void displayMessage(String message, MessageType messageType)
-	{
-		trayIcon.displayMessage(i18n.getString("window.title"), 
-				message, 
-				messageType);
+	public void displayMessage(String message, MessageType messageType) {
+		if (trayIcon != null) {
+			trayIcon.displayMessage(i18n.getString("window.title"), message, messageType);
+		}
+	}
+
+	@Override
+	public void setStatus(String statusMessage) {
+		if (trayIcon != null)
+		{
+			StringBuilder s = new StringBuilder();
+			s.append(i18n.getString("window.title"));
+			
+			if (statusMessage != null && !statusMessage.isEmpty())
+			{
+				s.append(System.lineSeparator()).append(statusMessage);
+			}
+			trayIcon.setToolTip(s.toString());
+		}
 	}
 
 
