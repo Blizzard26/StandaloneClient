@@ -28,6 +28,7 @@ import org.stt.gui.jfx.WorktimePaneBuilder;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.db.h2.H2BackupCreator;
 import org.stt.persistence.db.h2.H2PersistenceModule;
+import org.stt.text.ExpansionModule;
 import org.stt.text.TextModule;
 import org.stt.time.TimeUtilModule;
 
@@ -69,9 +70,9 @@ public class UIMain extends Application {
         final Injector injector = Guice.createInjector(
         		new TimeUtilModule(), new H2PersistenceModule(), 
         		new I18NModule(), new EventBusModule(), 
-        		new AchievementModule(), new TextModule(),
+        		new AchievementModule(), new TextModule(), new ExpansionModule(),
                 new JFXModule(), new BaseModule(), 
-                new ConfigModule(), new NotificationModule());
+                new ConfigModule(), new SystemTrayNotificationModule());
 
         LOG.info("Setting up event bus");
         eventBus = injector.getInstance(EventBus.class);

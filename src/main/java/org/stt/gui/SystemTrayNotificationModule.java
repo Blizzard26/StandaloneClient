@@ -4,9 +4,9 @@ import java.util.logging.Logger;
 
 import com.google.inject.AbstractModule;
 
-public class NotificationModule extends AbstractModule {
+public class SystemTrayNotificationModule extends AbstractModule {
 
-	private static final Logger LOG = Logger.getLogger(NotificationModule.class
+	private static final Logger LOG = Logger.getLogger(SystemTrayNotificationModule.class
             .getName());
 
 	@Override
