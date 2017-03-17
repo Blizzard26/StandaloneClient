@@ -5,23 +5,24 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 
 import org.stt.connector.jira.JiraConnector;
 import org.stt.connector.jira.JiraConnectorException;
-import org.stt.gui.Notification;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.google.inject.Inject;
 
 public class JiraExpansionProvider implements ExpansionProvider {
 
+    private static final Logger LOG = Logger.getLogger(JiraExpansionProvider.class
+            .getName());
+	
 	private JiraConnector jiraConnector;
-	private Notification notification;
 
 	@Inject
-	public JiraExpansionProvider(JiraConnector connector, Notification notification) {
+	public JiraExpansionProvider(JiraConnector connector) {
 		this.jiraConnector = checkNotNull(connector);
-		this.notification = checkNotNull(notification);
 	}
 	
 	@Override
@@ -37,7 +38,7 @@ public class JiraExpansionProvider implements ExpansionProvider {
 		try {
 			issue = jiraConnector.getIssue(queryText);
 		} catch (JiraConnectorException e) {
-			notification.error(e.getLocalizedMessage());
+			LOG.severe(e.getLocalizedMessage());
 			return Collections.emptyList();
 		}
 		
