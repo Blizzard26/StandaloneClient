@@ -22,9 +22,11 @@ public class WorkStatusService implements Service {
 	private EventBus eventBus;
 	private Notification notification;
 	private ResourceBundle i18n;
+	private DateTime lastWeekWorktimeNotification;
 	private DateTime lastDailyWorktimeNotification;
 	private WorkTimeQueries workTimeQueries;
 	private Duration remainingWorktimeToday;
+	private Duration remainingWorktimeWeek;
 	private DateTime lastUpdate;
 
 	public WorkStatusService(ResourceBundle i18n, EventBus eventBus, WorkTimeQueries workTimeQueries,
@@ -74,6 +76,7 @@ public class WorkStatusService implements Service {
 
 	private void updateWorktime() {
 		remainingWorktimeToday = workTimeQueries.queryRemainingWorktimeToday();
+		remainingWorktimeWeek = workTimeQueries.queryRemainingWorktimeWeek();
 		lastUpdate = DateTime.now();
 	}
 
@@ -87,6 +90,7 @@ public class WorkStatusService implements Service {
 		lastUpdate = now;
 		
 		remainingWorktimeToday = remainingWorktimeToday.minus(elapsed);		
+		remainingWorktimeWeek = remainingWorktimeWeek.minus(elapsed);
 	}
 	
 
@@ -95,6 +99,12 @@ public class WorkStatusService implements Service {
 				&& (lastDailyWorktimeNotification == null || lastDailyWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear())) {
 			notification.info(i18n.getString("achievement.worktimeTodayReached"));
 			lastDailyWorktimeNotification = DateTime.now();
+		}
+
+		if ((remainingWorktimeWeek.isEqual(Duration.ZERO) || remainingWorktimeWeek.isShorterThan(Duration.ZERO)) 
+				&& (lastWeekWorktimeNotification == null || lastWeekWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear())) {
+			notification.info(i18n.getString("achievement.worktimeWeekReached"));
+			lastWeekWorktimeNotification = DateTime.now();
 		}
 	}
 
