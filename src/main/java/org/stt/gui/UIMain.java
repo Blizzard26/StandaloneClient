@@ -29,6 +29,7 @@ import org.stt.gui.systemtray.SystemTrayIcon;
 import org.stt.notification.CurrentItemStatusService;
 import org.stt.notification.NotificationModule;
 import org.stt.notification.StatusNotificationServiceModule;
+import org.stt.notification.WorkStatusService;
 import org.stt.persistence.BackupCreator;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.stt.STTPersistenceModule;
@@ -104,7 +105,8 @@ public class UIMain extends Application {
         application.addAdditional(worktimePaneBuilder);
         
         systemTrayIcon = injector.getInstance(SystemTrayIcon.class);
-
+        
+        startServiceInBackground(injector, WorkStatusService.class);
         startServiceInBackground(injector, CurrentItemStatusService.class);
         
         LOG.info("init() done");
