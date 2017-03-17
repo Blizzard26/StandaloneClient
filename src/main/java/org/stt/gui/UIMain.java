@@ -23,6 +23,7 @@ import org.stt.fun.AchievementService;
 import org.stt.gui.jfx.JFXModule;
 import org.stt.gui.jfx.STTApplication;
 import org.stt.gui.jfx.WorktimePaneBuilder;
+import org.stt.gui.systemtray.SystemTrayIcon;
 import org.stt.persistence.BackupCreator;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.stt.STTPersistenceModule;
@@ -46,6 +47,8 @@ public class UIMain extends Application {
     private List<Service> servicesToShutdown = new CopyOnWriteArrayList<>();
     private STTApplication application;
     private EventBus eventBus;
+
+	private SystemTrayIcon systemTrayIcon;
 
     public static void main(String[] args) {
         LOG.info("START");
@@ -86,6 +89,9 @@ public class UIMain extends Application {
         WorktimePaneBuilder worktimePaneBuilder = injector.getInstance(WorktimePaneBuilder.class);
         eventBus.register(worktimePaneBuilder);
         application.addAdditional(worktimePaneBuilder);
+        
+        systemTrayIcon = injector.getInstance(SystemTrayIcon.class);
+        
         LOG.info("init() done");
     }
 
@@ -133,6 +139,8 @@ public class UIMain extends Application {
             }
         });
         LOG.info("Showing window");
-        application.start(primaryStage);
+
+        application.start(primaryStage);	
+        systemTrayIcon.start(primaryStage);	
     }
 }

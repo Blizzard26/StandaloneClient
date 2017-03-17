@@ -11,6 +11,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.stt.text.ExpansionProvider;
 import org.stt.text.ItemGrouper;
+import org.stt.Configuration;
 import org.stt.command.Command;
 import org.stt.command.CommandParser;
 import org.stt.command.NothingCommand;
@@ -59,6 +60,8 @@ public class STTApplicationTest {
     private TimeTrackingItemQueries timeTrackingItemQueries;
     @Mock
     private AchievementService achievementService;
+    @Mock
+    private Configuration configuration;
 
     @Before
     public void setup() {
@@ -68,7 +71,7 @@ public class STTApplicationTest {
         given(commandParser.endCurrentItemCommand(any(DateTime.class))).willReturn(Optional.<Command>absent());
         given(commandParser.deleteCommandFor(any(TimeTrackingItem.class))).willReturn(NothingCommand.INSTANCE);
 
-        sut = new STTApplication(new STTOptionDialogs(resourceBundle), new EventBus(), commandParser, reportWindowBuilder,
+        sut = new STTApplication(new STTOptionDialogs(resourceBundle), configuration, new EventBus(), commandParser, reportWindowBuilder,
                 expansionProvider, resourceBundle, new TimeTrackingItemListConfig(), new CommandTextConfig(), itemValidator, timeTrackingItemQueries, achievementService, executorService);
         sut.viewAdapter = sut.new ViewAdapter(null) {
 
@@ -228,13 +231,6 @@ public class STTApplicationTest {
 
         // THEN
         assertThat(shutdownCalled, is(false));
-    }
-
-    private ItemReader givenReaderThatReturns(final TimeTrackingItem item) {
-        ItemReader reader = mock(ItemReader.class);
-        given(reader.read()).willReturn(Optional.of(item),
-                Optional.<TimeTrackingItem>absent());
-        return reader;
     }
 
     private void givenExecutorService() {

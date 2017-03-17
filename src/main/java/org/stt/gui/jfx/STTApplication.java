@@ -3,6 +3,7 @@ package org.stt.gui.jfx;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -43,6 +44,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.TokenStream;
 import org.joda.time.DateTime;
 import org.stt.text.ExpansionProvider;
+import org.stt.Configuration;
 import org.stt.command.Command;
 import org.stt.command.CommandParser;
 import org.stt.command.NewItemCommand;
@@ -64,6 +66,7 @@ import org.stt.gui.jfx.text.CommandHighlighter;
 import org.stt.gui.jfx.text.ContextPopupCreator;
 import org.stt.gui.jfx.text.HighlightingOverlay;
 import org.stt.gui.jfx.text.PopupAtCaretPlacer;
+import org.stt.model.ItemModified;
 import org.stt.model.TimeTrackingItem;
 import org.stt.model.TimeTrackingItemFilter;
 import org.stt.query.TimeTrackingItemQueries;
@@ -85,6 +88,7 @@ import java.util.logging.Logger;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.stt.gui.jfx.STTOptionDialogs.Result;
 
+@Singleton
 public class STTApplication implements DeleteActionHandler, EditActionHandler,
         ContinueActionHandler {
 
@@ -109,9 +113,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
     private AchievementService achievementService;
     private ExecutorService executorService;
     private ObservableList<AdditionalPaneBuilder> additionals = FXCollections.observableArrayList();
+	private Configuration configuration;
 
     @Inject
     STTApplication(STTOptionDialogs STTOptionDialogs,
+    			   Configuration configuration,
                    EventBus eventBus,
                    CommandParser commandParser,
                    ReportWindowBuilder reportWindowBuilder,
@@ -123,6 +129,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                    TimeTrackingItemQueries searcher,
                    AchievementService achievementService,
                    ExecutorService executorService) {
+        this.configuration = checkNotNull(configuration);
         checkNotNull(timeTrackingItemListConfig);
         this.executorService = checkNotNull(executorService);
         this.achievementService = checkNotNull(achievementService);
@@ -369,7 +376,20 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                 public void handle(KeyEvent event) {
                     if (KeyCode.ESCAPE.equals(event.getCode())) {
                         event.consume();
-                        shutdown();
+                        if (currentCommand.getValue().length() > 0)
+                        {
+                        	currentCommand.setValue("");
+                        }
+                        else if (configuration.getMinimizedToTray())
+                    	{
+                    		minimizeToTray();
+                    	}
+                    	else
+                    	{
+                    		shutdown();
+                    	}
+                        
+                        
                     }
                 }
             });
@@ -555,8 +575,19 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         @FXML
         private void done() {
             executeCommand();
-            shutdown();
+            if (configuration.getMinimizedToTray())
+            {
+            	minimizeToTray();
+            }
+            else
+            {
+            	shutdown();
+            }
         }
+
+		private void minimizeToTray() {
+			stage.hide();
+		}
 
         @FXML
         void insert() {
