@@ -271,6 +271,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
             }
         });
     }
+    
+    @Subscribe
+    public void updateOnModification(ItemModified event) {
+        updateItems();
+    }
 
     private void updateItems() {
         viewAdapter.updateAllItems(searcher.queryAllItems());

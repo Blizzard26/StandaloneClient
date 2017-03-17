@@ -88,6 +88,7 @@ public class UIMain extends Application {
         startServiceInBackground(injector, FileChangeListenerService.class);
 
         application = injector.getInstance(STTApplication.class);
+        eventBus.register(application);
         WorktimePaneBuilder worktimePaneBuilder = injector.getInstance(WorktimePaneBuilder.class);
         eventBus.register(worktimePaneBuilder);
         application.addAdditional(worktimePaneBuilder);
