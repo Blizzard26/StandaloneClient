@@ -11,6 +11,7 @@ import org.stt.connector.jira.JiraConnectorException;
 import org.stt.gui.Notification;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
+import com.google.common.base.Optional;
 import com.google.inject.Inject;
 
 public class JiraExpansionProvider implements ExpansionProvider {
@@ -33,7 +34,7 @@ public class JiraExpansionProvider implements ExpansionProvider {
 			queryText = text.substring(spaceIndex, text.length()).trim();
 		}
 		
-		Issue issue;
+		Optional<Issue> issue;
 		try {
 			issue = jiraConnector.getIssue(queryText);
 		} catch (JiraConnectorException e) {
@@ -42,9 +43,9 @@ public class JiraExpansionProvider implements ExpansionProvider {
 		}
 		
 		List<String> expansions = new ArrayList<>();
-		if (issue != null)
+		if (issue.isPresent())
 		{
-			expansions.add(": " + issue.getSummary());
+			expansions.add(": " + issue.get().getSummary());
 		}
 		
 		return expansions;

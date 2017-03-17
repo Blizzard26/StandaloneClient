@@ -32,6 +32,7 @@ import com.atlassian.jira.rest.client.auth.AnonymousAuthenticationHandler;
 import com.atlassian.jira.rest.client.auth.BasicHttpAuthenticationHandler;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.atlassian.util.concurrent.Promise;
+import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
@@ -91,7 +92,7 @@ public class JiraConnector implements Service {
 		}
 	}
 	
-	public Issue getIssue(String issueKey) throws JiraConnectorException // TODO use Optional<Issue>
+	public Optional<Issue> getIssue(String issueKey) throws JiraConnectorException
 	{	
 		if (client != null)
 		{
@@ -100,7 +101,7 @@ public class JiraConnector implements Service {
 			// Check if the given project key belongs to an existing project
 			if (!projectExists(projectKey))
 			{
-				return null;
+				return Optional.absent();
 			}
 			
 			try 
@@ -110,12 +111,12 @@ public class JiraConnector implements Service {
 				
 				Issue jiraIssue = issue.get(5000, TimeUnit.MILLISECONDS);
 				
-				return jiraIssue;
+				return Optional.of(jiraIssue);
 			} 
 			catch (InterruptedException e) {
 				LOG.log(Level.WARNING, "InterruptedException while retrieving issue", e);
 				// Ignore and continue
-				return null;
+				return Optional.absent();
 			} catch (ExecutionException e) {
 				if (e.getCause() instanceof RestClientException)
 				{
@@ -126,18 +127,18 @@ public class JiraConnector implements Service {
 					LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
 				}
 				
-				return null;
+				return Optional.absent();
 			} catch (TimeoutException e) {
 				LOG.log(Level.WARNING, "TimeoutException while retrieving issue", e);
 				throw new JiraConnectorException("Connection Timeout", e);
 			} catch (RestClientException e) {
 				handleRestClientException(e);
-				return null;
+				return Optional.absent();
 			}
 		}
 		else
 		{
-			return null;
+			return Optional.absent();
 		}
 	}
 	

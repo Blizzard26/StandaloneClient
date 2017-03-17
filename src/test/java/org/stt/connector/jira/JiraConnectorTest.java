@@ -5,7 +5,6 @@ import static org.mockito.BDDMockito.*;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -13,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -28,6 +26,7 @@ import com.atlassian.jira.rest.client.api.SearchRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicProject;
 import com.atlassian.jira.rest.client.api.domain.Issue;
 import com.atlassian.util.concurrent.Promise;
+import com.google.common.base.Optional;
 
 public class JiraConnectorTest {
 
@@ -128,10 +127,11 @@ public class JiraConnectorTest {
 		given(issueClient.getIssue("JRA-1")).willReturn(issuePromise);
 		
 		// WHEN
-		Issue issue = sut.getIssue("JRA-1");
+		Optional<Issue> issue = sut.getIssue("JRA-1");
 		
 		// THEN
-		assertEquals(issueInject, issue);
+		assertTrue(issue.isPresent());
+		assertEquals(issueInject, issue.get());
 	}
 	
 }

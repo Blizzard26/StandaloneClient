@@ -14,6 +14,7 @@ import org.stt.connector.jira.JiraConnector;
 import org.stt.gui.Notification;
 
 import com.atlassian.jira.rest.client.api.domain.Issue;
+import com.google.common.base.Optional;
 
 public class JiraExpansionProviderTest {
 	
@@ -30,7 +31,7 @@ public class JiraExpansionProviderTest {
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
 		
-		given(jiraConnector.getIssue("JRA-7")).willReturn(issue);
+		given(jiraConnector.getIssue("JRA-7")).willReturn(Optional.of(issue));
 		given(issue.getSummary()).willReturn("Testing Issue");
 	}
 
