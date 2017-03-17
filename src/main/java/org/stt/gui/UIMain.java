@@ -25,6 +25,7 @@ import org.stt.gui.jfx.JFXModule;
 import org.stt.gui.jfx.STTApplication;
 import org.stt.gui.jfx.WorktimePaneBuilder;
 import org.stt.gui.systemtray.SystemTrayIcon;
+import org.stt.notification.NotificationModule;
 import org.stt.persistence.BackupCreator;
 import org.stt.persistence.PreCachingItemReaderProvider;
 import org.stt.persistence.stt.STTPersistenceModule;
@@ -62,8 +63,9 @@ public class UIMain extends Application {
         LOG.info("Starting STT in UI mode");
 
         LOG.info("Starting injector");
-        final Injector injector = Guice.createInjector(new TimeUtilModule(), new STTPersistenceModule(), new I18NModule(), new EventBusModule(), new AchievementModule(), new TextModule(),
-                new JFXModule(), new BaseModule(), new ConfigModule());
+		final Injector injector = Guice.createInjector(new TimeUtilModule(), new STTPersistenceModule(),
+				new I18NModule(), new EventBusModule(), new AchievementModule(), new TextModule(), new JFXModule(),
+				new BaseModule(), new ConfigModule(), new NotificationModule());
 
         LOG.info("Setting up event bus");
         eventBus = injector.getInstance(EventBus.class);

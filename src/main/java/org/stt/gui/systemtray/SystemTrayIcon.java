@@ -3,6 +3,7 @@ package org.stt.gui.systemtray;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.awt.SystemTray;
+import java.awt.TrayIcon.MessageType;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import javax.imageio.ImageIO;
 import org.stt.Configuration;
 import org.stt.event.ShuttingDown;
 import org.stt.gui.jfx.LogWorkWindowBuilder;
+import org.stt.notification.Notification;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
@@ -27,7 +29,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.stage.Stage;
 
 @Singleton
-public class SystemTrayIcon {
+public class SystemTrayIcon implements Notification {
 
 	private Logger LOG = Logger.getLogger(SystemTrayIcon.class.getName());
 	
@@ -79,6 +81,7 @@ public class SystemTrayIcon {
             java.awt.Image image = ImageIO.read(imageLoc);
             trayIcon = new java.awt.TrayIcon(image);
             trayIcon.setImageAutoSize(true);
+            setStatus(null);
 
             // if the user double-clicks on the tray icon, show the main app stage.
             trayIcon.addActionListener(event -> {
@@ -242,5 +245,47 @@ public class SystemTrayIcon {
 			throw e;
 		}
 	}
+
+
+	@Override
+	public void error(String errorMessage) {
+		displayMessage(errorMessage, MessageType.ERROR);
+	}
+
+
+	@Override
+	public void warning(String warningMessage) {
+		displayMessage(warningMessage, MessageType.WARNING);
+	}
+
+
+	@Override
+	public void info(String infoMessage) {
+		displayMessage(infoMessage, MessageType.INFO);
+	}
+	
+	public void displayMessage(String message, MessageType messageType) {
+		if (trayIcon != null) {
+			trayIcon.displayMessage(i18n.getString("window.title"), message, messageType);
+		}
+	}
+
+	@Override
+	public void setStatus(String statusMessage) {
+		if (trayIcon != null)
+		{
+			StringBuilder s = new StringBuilder();
+			s.append(i18n.getString("window.title"));
+			
+			if (statusMessage != null && !statusMessage.isEmpty())
+			{
+				s.append(System.lineSeparator()).append(statusMessage);
+			}
+			trayIcon.setToolTip(s.toString());
+		}
+	}
+
+
+
 
 }
