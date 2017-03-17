@@ -4,6 +4,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import javafx.stage.Stage;
+
+import org.stt.command.CommandParser;
 import org.stt.config.YamlConfigService;
 import org.stt.text.ItemGrouper;
 import org.stt.persistence.ItemReaderProvider;
@@ -25,5 +27,11 @@ public class JFXModule extends AbstractModule {
         return new ReportWindowBuilder(
                 stageProvider, itemReaderProvider,
                 timeTrackingItemQueries, durationRounder, itemGrouper, yamlConfig.getConfig().getReportWindowConfig());
+    }
+    
+    @Provides
+    private LogWorkWindowBuilder createLogWorkWindowBuilder(CommandParser commandParser)
+    {
+    	return new LogWorkWindowBuilder(commandParser);
     }
 }

@@ -15,6 +15,7 @@ import javax.imageio.ImageIO;
 
 import org.stt.Configuration;
 import org.stt.event.ShuttingDown;
+import org.stt.gui.jfx.LogWorkWindowBuilder;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
@@ -33,6 +34,9 @@ public class SystemTrayIcon {
 	private Stage primaryStage;
 	private java.awt.TrayIcon trayIcon;
 	private EventBus eventBus;
+
+
+	private LogWorkWindowBuilder logWorkWindowBuilder;
 	
 	private Configuration configuration;
 
@@ -41,10 +45,12 @@ public class SystemTrayIcon {
 	@Inject
 	public SystemTrayIcon(ResourceBundle i18n, 
 			Configuration configuration,
+			LogWorkWindowBuilder logWorkWindowBuilder,
 			EventBus eventBus) {
 		
 		this.i18n = checkNotNull(i18n);
 		this.configuration = checkNotNull(configuration);
+		this.logWorkWindowBuilder = checkNotNull(logWorkWindowBuilder);
 		this.eventBus = checkNotNull(eventBus);
 	}
 	
@@ -85,6 +91,36 @@ public class SystemTrayIcon {
 					LOG.log(Level.SEVERE, "Exception while executing TrayIcon action", e);
 				}
             });
+            trayIcon.addMouseListener(new MouseListener() {
+				
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					// 
+				}
+				
+				@Override
+				public void mousePressed(MouseEvent e) {
+					// 					
+				}
+				
+				@Override
+				public void mouseExited(MouseEvent e) {
+					// 					
+				}
+				
+				@Override
+				public void mouseEntered(MouseEvent e) {
+					// 
+				}
+				
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					if (e.getClickCount() == 1 && e.getButton() == MouseEvent.BUTTON1)
+					{	
+						showLogWorkWindow();
+					}
+				}
+			});
 
             // if the user selects the default menu item (which includes the app name), 
             // show the main app stage.
@@ -99,6 +135,9 @@ public class SystemTrayIcon {
             java.awt.Font defaultFont = java.awt.Font.decode(null);
             java.awt.Font boldFont = defaultFont.deriveFont(java.awt.Font.BOLD);
             openItem.setFont(boldFont);
+
+            java.awt.MenuItem logItem = new java.awt.MenuItem(i18n.getString("logWork"));
+            logItem.addActionListener(event -> Platform.runLater(this::showLogWorkWindow));
 
             
             // to really exit the application, the user must go to the system tray icon
@@ -118,6 +157,7 @@ public class SystemTrayIcon {
             // setup the popup menu for the application.
             final java.awt.PopupMenu popup = new java.awt.PopupMenu();
             popup.add(openItem);
+            popup.add(logItem);
             popup.addSeparator();
             popup.add(exitItem);
             trayIcon.setPopupMenu(popup);
@@ -154,6 +194,22 @@ public class SystemTrayIcon {
 		} finally {
 			eventBus.post(new ShuttingDown());
 		}
+	}
+
+	private void showLogWorkWindow() {
+		
+		Platform.runLater(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					logWorkWindowBuilder.setupStage();
+				} catch (IOException e) {
+					LOG.log(Level.SEVERE, "Exception while creating LogWorkWindow", e);
+				}
+			}
+		});
+		
 	}
 
 	private void showStage() {
