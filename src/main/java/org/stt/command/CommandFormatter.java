@@ -30,10 +30,13 @@ public class CommandFormatter {
         Object result = commandTextParser.walk(parser.command());
         if (result instanceof TimeTrackingItem) {
             TimeTrackingItem parsedItem = (TimeTrackingItem) result;
-            return new NewItemCommand(parsedItem);
+            return new NewActivity(parsedItem);
         }
         if (result instanceof LocalDateTime) {
             return new EndCurrentItem((LocalDateTime) result);
+        }
+        if (result instanceof Command) {
+            return (Command) result;
         }
         return DoNothing.INSTANCE;
     }

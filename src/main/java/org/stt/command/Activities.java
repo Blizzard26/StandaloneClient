@@ -33,7 +33,7 @@ public class Activities implements CommandHandler {
     }
 
     @Override
-    public void addNewActivity(NewItemCommand command) {
+    public void addNewActivity(NewActivity command) {
         requireNonNull(command);
         persister.persist(command.newItem);
         eventBus.ifPresent(eb -> eb.publish(new ItemInserted(command.newItem)));
@@ -42,7 +42,7 @@ public class Activities implements CommandHandler {
     @Override
     public void endCurrentActivity(EndCurrentItem command) {
         requireNonNull(command);
-        queries.getCurrentTimeTrackingitem()
+        queries.getOngoingItem()
                 .ifPresent(item -> {
                     TimeTrackingItem derivedItem = item.withEnd(command.endAt);
                     persister.replace(item, derivedItem);
@@ -58,6 +58,12 @@ public class Activities implements CommandHandler {
     }
 
     @Override
+    public void removeActivityAndFillGap(RemoveActivity command) {
+        requireNonNull(command);
+        queries.getAdjacentItems(command.itemToDelete);
+    }
+
+    @Override
     public void resumeActivity(ResumeActivity command) {
         requireNonNull(command);
         TimeTrackingItem resumedItem = command.itemToResume
@@ -67,4 +73,17 @@ public class Activities implements CommandHandler {
         eventBus.ifPresent(eb -> eb.publish(new ItemInserted(resumedItem)));
     }
 
+    @Override
+    public void resumeLastActivity(ResumeLastActivity command) {
+        requireNonNull(command);
+
+        Optional<TimeTrackingItem> lastTimeTrackingItem = queries.getLastItem();
+        if (lastTimeTrackingItem.isPresent() && lastTimeTrackingItem.get().getEnd().isPresent()) {
+            lastTimeTrackingItem.ifPresent(timeTrackingItem -> {
+                TimeTrackingItem resumedItem = timeTrackingItem.withPendingEnd().withStart(command.resumeAt);
+                persister.persist(resumedItem);
+                eventBus.ifPresent(eb -> eb.publish(new ItemInserted(resumedItem)));
+            });
+        }
+    }
 }

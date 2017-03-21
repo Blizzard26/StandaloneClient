@@ -274,6 +274,41 @@ public class CommandFormatterTest {
     }
 
     @Test
+    public void shouldDoNothingOnResumeLastAndActiveItem() {
+        // GIVEN
+        TimeTrackingItem unfinishedItem = createUnfinishedItem();
+        givenCurrentTimeTrackingItem(unfinishedItem);
+
+        // WHEN
+        executeCommand("resume last");
+
+        // THEN
+        timeTrackingItemQueries.sourceChanged(null);
+        TimeTrackingItem timeTrackingItem = timeTrackingItemQueries.getOngoingItem().get();
+        assertThat(timeTrackingItem, is(unfinishedItem));
+    }
+
+    @Test
+    public void shouldStartNewItemNowOnResumeLastAndPreviouslyFinishedItem() {
+        // GIVEN
+        TimeTrackingItem finishedItem = new TimeTrackingItem("last item",
+                LocalDateTime.of(2014, 6, 22, 14, 43, 14),
+                LocalDateTime.of(2015, 6, 22, 14, 43, 14));
+        givenCurrentTimeTrackingItem(finishedItem);
+
+        // WHEN
+        executeCommand("resume last");
+
+        // THEN
+        timeTrackingItemQueries.sourceChanged(null);
+        TimeTrackingItem timeTrackingItem = timeTrackingItemQueries.getOngoingItem().get();
+        assertThat(timeTrackingItem.getActivity(), is("last item"));
+        assertThat(!timeTrackingItem.getStart().isAfter(LocalDateTime.now()), is(true));
+        assertThat(timeTrackingItem.getEnd(), is(Optional.empty()));
+    }
+
+
+    @Test
     public void shouldEndCurrentItemOnFINCommand() throws IOException {
         // GIVEN
         TimeTrackingItem unfinished = createUnfinishedItem();
@@ -384,7 +419,7 @@ public class CommandFormatterTest {
         TimeTrackingItem resultItem;
 
         @Override
-        public void addNewActivity(NewItemCommand command) {
+        public void addNewActivity(NewActivity command) {
             resultItem = command.newItem;
         }
 
@@ -398,8 +433,17 @@ public class CommandFormatterTest {
         }
 
         @Override
+        public void removeActivityAndFillGap(RemoveActivity command) {
+
+        }
+
+        @Override
         public void resumeActivity(ResumeActivity command) {
 
+        }
+
+        @Override
+        public void resumeLastActivity(ResumeLastActivity command) {
         }
     }
 
