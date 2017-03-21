@@ -1,29 +1,31 @@
 package org.stt.connector.jira;
 
-import com.atlassian.jira.rest.client.api.*;
-import com.atlassian.jira.rest.client.api.domain.BasicProject;
-import com.atlassian.jira.rest.client.api.domain.Issue;
-import com.atlassian.jira.rest.client.api.domain.SearchResult;
-import com.atlassian.jira.rest.client.auth.AnonymousAuthenticationHandler;
-import com.atlassian.jira.rest.client.auth.BasicHttpAuthenticationHandler;
-import com.atlassian.util.concurrent.Promise;
-import com.google.common.base.Optional;
-import org.stt.Service;
-import org.stt.config.JiraConfig;
+import static java.util.Objects.requireNonNull;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.util.Objects.requireNonNull;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import org.stt.Service;
+import org.stt.config.JiraConfig;
+
+import net.rcarz.jiraclient.BasicCredentials;
+import net.rcarz.jiraclient.ICredentials;
+import net.rcarz.jiraclient.Issue;
+import net.rcarz.jiraclient.Issue.SearchResult;
+import net.rcarz.jiraclient.JiraClient;
+import net.rcarz.jiraclient.JiraException;
+import net.rcarz.jiraclient.Project;
 
 
 @Singleton
@@ -32,15 +34,13 @@ public class JiraConnector implements Service {
     private static final Logger LOG = Logger.getLogger(JiraConnector.class.getName());
 
 
-    JiraRestClient client = null;
+    JiraClient client = null;
     private Set<String> projectsCache;
     private JiraConfig configuration;
-    private JiraRestClientFactory factory;
 
     @Inject
-    public JiraConnector(JiraConfig configuration, JiraRestClientFactory factory) {
+    public JiraConnector(JiraConfig configuration) {
         this.configuration = requireNonNull(configuration);
-        this.factory = requireNonNull(factory);
     }
 
 
@@ -50,28 +50,35 @@ public class JiraConnector implements Service {
         URI jiraURI = configuration.getJiraURI();
 
         if (jiraURI != null) {
-            AuthenticationHandler authenticationHandler;
+        	ICredentials credetials = createCredentials(configuration);
 
-            String jiraUserName = configuration.getJiraUsername();
-            if (jiraUserName != null && jiraUserName.length() > 0) {
-                authenticationHandler = new BasicHttpAuthenticationHandler(jiraUserName, configuration.getJiraPassword());
-            } else {
-                authenticationHandler = new AnonymousAuthenticationHandler();
-            }
-
-            client = factory.create(jiraURI, authenticationHandler);
+			client = createJiraClient(jiraURI, credetials);
         }
     }
 
+
+	protected JiraClient createJiraClient(URI jiraURI, ICredentials credetials) throws JiraException {
+		return new JiraClient(jiraURI.toString(), credetials);
+	}
+
+
+	protected ICredentials createCredentials(JiraConfig configuration) {
+		ICredentials credetials;
+
+		String jiraUserName = configuration.getJiraUsername();
+		if (jiraUserName != null && jiraUserName.length() > 0) {
+			credetials = new BasicCredentials(jiraUserName, configuration.getJiraPassword());
+		} else {
+		    //authenticationHandler = new AnonymousAuthenticationHandler();
+			// fixme
+			credetials = null;
+		}
+		return credetials;
+	}
+
     @Override
     public void stop() {
-        try {
-            if (client != null)
-                client.close();
-            client = null;
-        } catch (IOException e) {
-            LOG.log(Level.WARNING, "Exception while closing client connection", e);
-        }
+        client = null;
     }
 
     public Optional<Issue> getIssue(String issueKey) throws JiraConnectorException {
@@ -80,58 +87,26 @@ public class JiraConnector implements Service {
 
             // Check if the given project key belongs to an existing project
             if (!projectExists(projectKey)) {
-                return Optional.absent();
+                return Optional.empty();
             }
 
             try {
-                IssueRestClient issueClient = client.getIssueClient();
-                Promise<Issue> issue = issueClient.getIssue(issueKey);
-
-                Issue jiraIssue = issue.get(5000, TimeUnit.MILLISECONDS);
+            	Issue jiraIssue = client.getIssue(issueKey);
 
                 return Optional.of(jiraIssue);
-            } catch (InterruptedException e) {
-                LOG.log(Level.WARNING, "InterruptedException while retrieving issue", e);
-                // Ignore and continue
-                return Optional.absent();
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof RestClientException) {
-                    handleRestClientException((RestClientException) e.getCause());
-                } else {
-                    LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
-                }
-
-                return Optional.absent();
-            } catch (TimeoutException e) {
-                LOG.log(Level.WARNING, "TimeoutException while retrieving issue", e);
-                throw new JiraConnectorException("Connection Timeout", e);
-            } catch (RestClientException e) {
-                handleRestClientException(e);
-                return Optional.absent();
+            } catch (JiraException e) {
+                handleJiraException(e);
+                return Optional.empty();
             }
         } else {
-            return Optional.absent();
+            return Optional.empty();
         }
     }
 
-    private void handleRestClientException(RestClientException e) throws JiraConnectorException {
+    private void handleJiraException(JiraException e) throws JiraConnectorException {
         LOG.log(Level.WARNING, "RestClientException while retrieving issue", e);
-        if (e.getStatusCode().isPresent()) {
-            switch (e.getStatusCode().get().intValue()) {
-
-                case HttpURLConnection.HTTP_FORBIDDEN: // 403
-                    throw new JiraConnectorException("Could not login to Jira, please check your credentials!", e);
-                case HttpURLConnection.HTTP_NOT_FOUND: // 404
-                    // TODO how to discern normal "Http not found" from "Issue not found"?
-                    // Ignore "Issue not found"
-                    break;
-                default:
-                    throw new JiraConnectorException("Jira Connector returned exception!", e);
-            }
-        } else {
-            throw new JiraConnectorException("Jira Connector returned exception!", e);
-        }
-
+        // TODO: How to determine the kind of issue?
+        throw new JiraConnectorException("Jira Connector returned exception!", e);
     }
 
     public Collection<Issue> getIssues(String issueKeyPrefix) throws JiraConnectorException {
@@ -146,29 +121,15 @@ public class JiraConnector implements Service {
             }
 
             // Get all issue of the project
-            SearchRestClient searchClient = client.getSearchClient();
-            Promise<SearchResult> searchResultPromise = searchClient.searchJql("project=\"" + projectKey + "\"", Integer.MAX_VALUE, 0, null);
-
             SearchResult searchResult;
             try {
-                searchResult = searchResultPromise.get(30, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                // TODO throw exception Timeout
-                LOG.log(Level.WARNING, "Exception while retrieving issues", e);
-                return Collections.emptyList();
-            } catch (TimeoutException e) {
-                LOG.log(Level.WARNING, "Exception while retrieving issues", e);
-                throw new JiraConnectorException("Connection Timeout", e);
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof RestClientException) {
-                    handleRestClientException((RestClientException) e.getCause());
-                } else {
-                    LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
-                }
+				searchResult = client.searchIssues("project=\"" + projectKey + "\"");
+            } catch (JiraException e) {
+                handleJiraException(e);
                 return Collections.emptyList();
             }
 
-            Iterable<Issue> issues = searchResult.getIssues();
+            Iterable<Issue> issues = searchResult.issues;
 
             // Select all issues which start with the given prefix
 
@@ -207,35 +168,23 @@ public class JiraConnector implements Service {
     }
 
     private Set<String> internalGetProjectNames() throws JiraConnectorException {
-        Set<String> projects = new HashSet<>();
+        Set<String> resultSet = new HashSet<>();
         if (client != null) {
-            ProjectRestClient projectClient = client.getProjectClient();
+            List<Project> projects;
+			
 
-            Promise<Iterable<BasicProject>> projectsPromise = projectClient.getAllProjects();
-
-            Iterable<BasicProject> projectsIterable;
             try {
-                projectsIterable = projectsPromise.get(5000, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                LOG.log(Level.WARNING, "Exception while retrieving projects", e);
-                return Collections.emptySet();
-            } catch (TimeoutException e) {
-                LOG.log(Level.WARNING, "Exception while retrieving projects", e);
-                throw new JiraConnectorException("Connection Timeout", e);
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof RestClientException) {
-                    handleRestClientException((RestClientException) e.getCause());
-                } else {
-                    LOG.log(Level.WARNING, "Exception while retrieving issue", e.getCause());
-                }
+            	projects = client.getProjects();
+            } catch (JiraException e) {
+                handleJiraException(e);
                 return Collections.emptySet();
             }
 
-            for (BasicProject project : projectsIterable) {
-                projects.add(project.getKey());
+            for (Project project : projects) {
+                resultSet.add(project.getKey());
             }
         }
-        return projects;
+        return resultSet;
     }
 
 }

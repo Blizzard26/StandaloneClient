@@ -1,17 +1,19 @@
 package org.stt.text;
 
-import com.atlassian.jira.rest.client.api.domain.Issue;
-import com.google.common.base.Optional;
-import org.stt.connector.jira.JiraConnector;
-import org.stt.connector.jira.JiraConnectorException;
-
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Logger;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import javax.inject.Inject;
+
+import org.stt.connector.jira.JiraConnector;
+import org.stt.connector.jira.JiraConnectorException;
+
+import net.rcarz.jiraclient.Issue;
+
 
 public class JiraExpansionProvider implements ExpansionProvider {
 
@@ -22,7 +24,7 @@ public class JiraExpansionProvider implements ExpansionProvider {
 
 	@Inject
 	public JiraExpansionProvider(JiraConnector connector) {
-		this.jiraConnector = checkNotNull(connector);
+		this.jiraConnector = Objects.requireNonNull(connector);
 	}
 	
 	@Override

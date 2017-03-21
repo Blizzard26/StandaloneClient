@@ -1,10 +1,11 @@
 package org.stt.connector.jira;
 
-import com.atlassian.jira.rest.client.api.*;
-import com.atlassian.jira.rest.client.api.domain.BasicProject;
-import com.atlassian.jira.rest.client.api.domain.Issue;
-import com.atlassian.util.concurrent.Promise;
-import com.google.common.base.Optional;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,11 +14,10 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.stt.config.JiraConfig;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import net.rcarz.jiraclient.ICredentials;
+import net.rcarz.jiraclient.Issue;
+import net.rcarz.jiraclient.JiraClient;
+import net.rcarz.jiraclient.Project;
 
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.*;
@@ -27,21 +27,12 @@ public class JiraConnectorTest {
 	private JiraConnector sut;
 
 	private JiraConfig configuration = new JiraConfig();
-
+	
 	@Mock
-	private JiraRestClientFactory factory;
-
+	ICredentials credentials;
+	
 	@Mock
-	private JiraRestClient restClient;
-
-	@Mock
-	private IssueRestClient issueClient;
-
-	@Mock
-	private ProjectRestClient projectClient;
-
-	@Mock
-	private SearchRestClient searchClient;
+	JiraClient jiraClient;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -49,17 +40,11 @@ public class JiraConnectorTest {
 		MockitoAnnotations.initMocks(this);
 
 		configuration.setJiraURI(new URI("https://jira.atlassian.com/"));
-		configuration.setJiraUsername("");
-
-		given(factory.create(any(URI.class), any(AuthenticationHandler.class))).willReturn(restClient);
+		configuration.setJiraUsername("");		
 		
-		given(restClient.getIssueClient()).willReturn(issueClient);
-		given(restClient.getProjectClient()).willReturn(projectClient);
-		given(restClient.getSearchClient()).willReturn(searchClient);
-		
-		sut = new JiraConnector(configuration, factory);
-		
-		
+		sut = Mockito.spy(new JiraConnector(configuration));
+		doReturn(credentials).when(sut).createCredentials(eq(configuration));
+		doReturn(jiraClient).when(sut).createJiraClient(any(URI.class), eq(credentials));
 	}
 
 	@After
@@ -72,16 +57,16 @@ public class JiraConnectorTest {
 		// GIVEN
 		sut.start();
 		
-		@SuppressWarnings("unchecked")
-		Promise<Iterable<BasicProject>> projectPromise = Mockito.mock(Promise.class);
+		Project p1 = Mockito.mock(Project.class);
+		given(p1.getKey()).willReturn("Project1Key");
+		Project p2 = Mockito.mock(Project.class);
+		given(p2.getKey()).willReturn("Project2Key");
 		
-		List<BasicProject> projectList = new ArrayList<>();
-		projectList.add(new BasicProject(new URI("https://jira.atlassian.com"), "Project1Key", 1L, "Project1"));
-		projectList.add(new BasicProject(new URI("https://jira.atlassian.com"), "Project2Key", 2L, "Project2"));
+		List<Project> projectList = new ArrayList<>();
+		projectList.add(p1);
+		projectList.add(p2);
 		
-		given(projectPromise.get(anyLong(), any(TimeUnit.class))).willReturn(projectList);
-		
-		given(projectClient.getAllProjects()).willReturn(projectPromise);
+		given(jiraClient.getProjects()).willReturn(projectList);
 		
 		// WHEN
 		Set<String> prefixes = sut.getProjectNames();
@@ -99,25 +84,17 @@ public class JiraConnectorTest {
 		// GIVEN
 		sut.start();
 		
-		@SuppressWarnings("unchecked")
-		Promise<Iterable<BasicProject>> projectPromise = Mockito.mock(Promise.class);
+		Project project = Mockito.mock(Project.class);
+		given(project.getKey()).willReturn("JRA");
 		
-		List<BasicProject> projectList = new ArrayList<>();
-		projectList.add(new BasicProject(new URI("https://jira.atlassian.com"), "JRA", 1L, "JRA"));
+		List<Project> projectList = new ArrayList<>();
+		projectList.add(project);
 		
-		given(projectPromise.get(anyLong(), any(TimeUnit.class))).willReturn(projectList);
+		given(jiraClient.getProjects()).willReturn(projectList);
 		
-		given(projectClient.getAllProjects()).willReturn(projectPromise);
+		Issue issueInject = Mockito.mock(Issue.class);
 		
-		@SuppressWarnings("unchecked")
-		Promise<Issue> issuePromise = Mockito.mock(Promise.class);
-		
-		Issue issueInject = new Issue("Test", new URI("https://jira.atlassion.com"), "JRA-1", 15L, null, null, null,
-				null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null);
-		given(issuePromise.get(anyLong(), any(TimeUnit.class))).willReturn(issueInject);
-		
-		given(issueClient.getIssue("JRA-1")).willReturn(issuePromise);
+		given(jiraClient.getIssue("JRA-1")).willReturn(issueInject);
 		
 		// WHEN
 		Optional<Issue> issue = sut.getIssue("JRA-1");
