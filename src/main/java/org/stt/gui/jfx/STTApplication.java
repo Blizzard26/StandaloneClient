@@ -45,6 +45,7 @@ import org.stt.gui.jfx.text.CommandHighlighter;
 import org.stt.gui.jfx.text.ContextPopupCreator;
 import org.stt.gui.jfx.text.HighlightingOverlay;
 import org.stt.gui.jfx.text.PopupAtCaretPlacer;
+import org.stt.model.FileChanged;
 import org.stt.model.ItemModified;
 import org.stt.model.TimeTrackingItem;
 import org.stt.model.TimeTrackingItemFilter;
@@ -310,6 +311,11 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         updateItems();
     }
 
+    @Subscribe
+    public void updateOnFileChanged(FileChanged event) {
+        updateItems();
+    }
+    
     private void updateItems() {
 		viewAdapter.updateAllItems(searcher.queryFirstNItems(Optional.of(viewAdapterStartDate), Optional.absent(), Optional.absent()));
     }
