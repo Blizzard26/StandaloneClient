@@ -22,6 +22,7 @@ import javafx.stage.Stage;
 public class JFXModule extends AbstractModule {
     @Override
     protected void configure() {
+    	bind(ApplicationControl.class).to(STTApplication.class);
     }
 
     @Provides

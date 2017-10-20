@@ -80,6 +80,7 @@ import javafx.collections.ObservableSet;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -103,7 +104,7 @@ import javafx.stage.WindowEvent;
 
 @Singleton
 public class STTApplication implements DeleteActionHandler, EditActionHandler,
-        ContinueActionHandler {
+        ContinueActionHandler, ApplicationControl {
 
     private static final Logger LOG = Logger.getLogger(STTApplication.class
             .getName());
@@ -289,13 +290,19 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         currentCommand.set("");
     }
 
-    public void show(Stage primaryStage) {
-        viewAdapter = new ViewAdapter(primaryStage);
+    public void show() {
         viewAdapter.show();
+    }
+    
+    public void minimizeToTray()
+    {
+		viewAdapter.minimizeToTray();
     }
 
     public void start(Stage primaryStage) {
-        show(primaryStage);
+    	viewAdapter = new ViewAdapter(primaryStage);
+    	
+        show();
         executorService.execute(new Runnable() {
             @Override
             public void run() {
@@ -398,12 +405,16 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
 
         private CommandHighlighter commandHighlighter;
 
+		private Rectangle2D boundingBox;
+
         ViewAdapter(Stage stage) {
             this.stage = stage;
+            init();
         }
-
-        protected void show() throws RuntimeException {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(
+        
+        protected void init()
+        {
+        	FXMLLoader loader = new FXMLLoader(getClass().getResource(
                     "/org/stt/gui/jfx/MainWindow.fxml"), localization);
             loader.setController(this);
 
@@ -447,20 +458,17 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                 public void handle(KeyEvent event) {
                     if (KeyCode.ESCAPE.equals(event.getCode())) {
                         event.consume();
-                        if (currentCommand.getValue().length() > 0)
-                        {
-                        	clearCommand();
-                        } else
+						if (currentCommand.getValue().length() > 0) {
+							clearCommand();
+						} else {
 							commandFinished();
+						}
                         
                         
                     }
                 }
             });
-
-            stage.show();
-            requestFocusOnCommandText();
-
+            
             commandText.textProperty().addListener(new ChangeListener<String>() {
                 @Override
                 public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
@@ -473,9 +481,70 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
                 }
             });
 
+            stage.xProperty().addListener(new ChangeListener<Number>() {
+
+				@Override
+				public void changed(ObservableValue<? extends Number> arg0, Number arg1, Number arg2) {
+					storeBoundingBox();
+				}
+            	
+            });
+            
+            stage.yProperty().addListener(new ChangeListener<Number>() {
+
+				@Override
+				public void changed(ObservableValue<? extends Number> arg0, Number arg1, Number arg2) {
+					storeBoundingBox();
+				}
+            	
+            });
+            
+            stage.widthProperty().addListener(new ChangeListener<Number>() {
+
+				@Override
+				public void changed(ObservableValue<? extends Number> arg0, Number arg1, Number arg2) {
+					storeBoundingBox();
+				}
+            	
+            });
+            
+            stage.heightProperty().addListener(new ChangeListener<Number>() {
+
+				@Override
+				public void changed(ObservableValue<? extends Number> arg0, Number arg1, Number arg2) {
+					storeBoundingBox();
+				}
+            	
+            });
+            
             if (autoCompletionPopup) {
                 setupAutoCompletionPopup();
             }
+        }
+
+        public void show() throws RuntimeException {
+    		try
+    		{
+    			if (stage != null) {
+    				stage.show();
+    				stage.setIconified(false);
+    				if (boundingBox != null)
+    				{
+    					stage.setX(boundingBox.getMinX());
+    					stage.setY(boundingBox.getMinY());
+    					stage.setWidth(boundingBox.getWidth());
+    					stage.setHeight(boundingBox.getHeight());
+    				}
+    				stage.toFront();
+    			}
+    		} 
+    		catch (Exception e)
+    		{
+    			LOG.log(Level.SEVERE, "Exceptiong while showing stage", e);
+    			throw e;
+    		}
+            
+            requestFocusOnCommandText();
         }
 
         private void setupAutoCompletionPopup() {
@@ -654,9 +723,10 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         }
 
         @FXML
-        private void done() {
+        private void done(boolean finished) {
             executeCommand();
-            commandFinished();
+            if (finished)
+            	commandFinished();
         }
 
 		private void commandFinished() {
@@ -670,8 +740,28 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
             }
 		}
 
-		private void minimizeToTray() {
-			stage.hide();
+		public void minimizeToTray() {
+			try
+			{
+				if (stage != null)
+				{
+					//storeBoundingBox();
+					stage.setIconified(true);
+					stage.hide();
+				}
+			}
+			catch (Exception e)
+			{
+				LOG.log(Level.SEVERE, "Exception while hiding stage", e);
+				throw e;
+			}
+		}
+
+		private void storeBoundingBox() {
+			if (stage.getX() > 0 && stage.getY() > 0 && stage.getWidth() > 300 && stage.getHeight() > 100)
+			{
+				System.out.println("Store: "+ boundingBox);
+			}
 		}
 		
 		@FXML
@@ -698,7 +788,7 @@ public class STTApplication implements DeleteActionHandler, EditActionHandler,
         private void onKeyPressed(KeyEvent event) {
             if (KeyCode.ENTER.equals(event.getCode()) && event.isControlDown()) {
                 event.consume();
-                done();
+                done(event.isShiftDown());
             }
             if (KeyCode.SPACE.equals(event.getCode()) && event.isControlDown()) {
                 expandCurrentCommand();

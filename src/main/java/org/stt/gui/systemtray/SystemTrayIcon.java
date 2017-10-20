@@ -17,7 +17,9 @@ import javax.imageio.ImageIO;
 import org.stt.Configuration;
 import org.stt.event.ShuttingDown;
 import org.stt.gui.Notification;
+import org.stt.gui.jfx.ApplicationControl;
 import org.stt.gui.jfx.LogWorkWindowBuilder;
+import org.stt.gui.jfx.STTApplication;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
@@ -26,6 +28,7 @@ import com.google.inject.Singleton;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.geometry.Rectangle2D;
 import javafx.stage.Stage;
 
 @Singleton
@@ -44,14 +47,17 @@ public class SystemTrayIcon implements Notification {
 
 	private ResourceBundle i18n;
 
+	private ApplicationControl application;
+
 	@Inject
 	public SystemTrayIcon(ResourceBundle i18n, 
 			Configuration configuration,
+			ApplicationControl application,
 			LogWorkWindowBuilder logWorkWindowBuilder,
 			EventBus eventBus) {
-		
 		this.i18n = checkNotNull(i18n);
 		this.configuration = checkNotNull(configuration);
+		this.application = checkNotNull(application);
 		this.logWorkWindowBuilder = checkNotNull(logWorkWindowBuilder);
 		this.eventBus = checkNotNull(eventBus);
 	}
@@ -84,16 +90,9 @@ public class SystemTrayIcon implements Notification {
             setStatus(null);
 
             // if the user double-clicks on the tray icon, show the main app stage.
-            trayIcon.addActionListener(event -> {
-	        	try {
-					if (primaryStage.isShowing())
-						Platform.runLater(this::hideStage);
-					else
-						Platform.runLater(this::showStage);
-				} catch (Exception e) {
-					LOG.log(Level.SEVERE, "Exception while executing TrayIcon action", e);
-				}
-            });
+//            trayIcon.addActionListener(event -> {
+//	        	toggleStage();
+//            });
             trayIcon.addMouseListener(new MouseListener() {
 				
 				@Override
@@ -121,6 +120,14 @@ public class SystemTrayIcon implements Notification {
 					if (e.getClickCount() == 1 && e.getButton() == MouseEvent.BUTTON1)
 					{	
 						showLogWorkWindow();
+					} 
+//					else if (e.getClickCount() == 1 && e.getButton() == MouseEvent.BUTTON2)
+//					{
+//						
+//					}					
+					else if (e.getClickCount() > 1 && e.getButton() == MouseEvent.BUTTON1)
+					{
+						toggleStage();
 					}
 				}
 			});
@@ -129,7 +136,7 @@ public class SystemTrayIcon implements Notification {
             // show the main app stage.
             java.awt.MenuItem openItem = new java.awt.MenuItem(i18n.getString("window.title"));
             openItem.addActionListener(event -> {
-            		Platform.runLater(this::showStage);
+            		Platform.runLater(this::showMainWindow);
             });
             
 
@@ -178,7 +185,7 @@ public class SystemTrayIcon implements Notification {
 					public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
 						if (newValue.booleanValue() == true)
 						{
-		    				primaryStage.hide();
+		    				hideMainWindow();
 						}
 					}
 				});
@@ -188,6 +195,18 @@ public class SystemTrayIcon implements Notification {
         } catch (java.awt.AWTException | IOException e) {
             LOG.log(Level.SEVERE, "Unable to init system tray", e);
         }
+	}
+
+
+	private void toggleStage() {
+		try {
+			if (primaryStage.isShowing())
+				Platform.runLater(this::hideMainWindow);
+			else
+				Platform.runLater(this::showMainWindow);
+		} catch (Exception e) {
+			LOG.log(Level.SEVERE, "Exception while executing TrayIcon action", e);
+		}
 	}
 
 	private void exit() {
@@ -215,35 +234,12 @@ public class SystemTrayIcon implements Notification {
 		
 	}
 
-	private void showStage() {
-		try
-		{
-			if (primaryStage != null) {
-				primaryStage.show();
-				primaryStage.setIconified(false);
-				primaryStage.toFront();
-			}
-		} 
-		catch (Exception e)
-		{
-			LOG.log(Level.SEVERE, "Exceptiong while showing stage", e);
-			throw e;
-		}
+	private void showMainWindow() {
+		application.show();
 	}
 	
-	private void hideStage() {
-		try
-		{
-			if (primaryStage != null)
-			{
-				primaryStage.setIconified(true);
-			}
-		}
-		catch (Exception e)
-		{
-			LOG.log(Level.SEVERE, "Exception while hiding stage", e);
-			throw e;
-		}
+	private void hideMainWindow() {
+		application.minimizeToTray();
 	}
 
 

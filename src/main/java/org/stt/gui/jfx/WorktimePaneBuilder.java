@@ -10,8 +10,13 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.joda.time.Period;
 import org.stt.event.TimePassedEvent;
+import org.stt.model.CurrentItemChanged;
+import org.stt.model.FileChanged;
 import org.stt.model.ItemModified;
 import org.stt.gui.jfx.binding.STTBindings;
 import org.stt.query.WorkTimeQueries;
@@ -31,6 +36,8 @@ public class WorktimePaneBuilder implements AdditionalPaneBuilder {
     private SimpleObjectProperty<Duration> remainingWorktime = new SimpleObjectProperty<>();
     private SimpleObjectProperty<Duration> weekWorktime = new SimpleObjectProperty<>();
     private WorkTimeQueries workTimeQueries;
+	private DateTime lastUpdate;
+	private boolean activeItem = true;
 
     @Inject
     public WorktimePaneBuilder(ResourceBundle i18n, WorkTimeQueries workTimeQueries) {
@@ -42,16 +49,53 @@ public class WorktimePaneBuilder implements AdditionalPaneBuilder {
     public void updateOnModification(ItemModified event) {
         updateItems();
     }
+    
+    @Subscribe
+    public void updateOnFileChanged(FileChanged event) {
+    	updateItems();
+    }
 
+	@Subscribe 
+	public void onCurrentItemChanged(CurrentItemChanged event)
+	{
+		activeItem = event.getCurrentItem().isPresent();
+		updateItems();
+	}
+    
     @Subscribe
     public void timePassed(TimePassedEvent event) {
-        updateItems();
+        timeElapsed();
     }
 
     private void updateItems() {
         LOG.finest("Updating remaining worktime");
         remainingWorktime.setValue(workTimeQueries.queryRemainingWorktimeToday());
         weekWorktime.setValue(workTimeQueries.queryWeekWorktime());
+        lastUpdate = DateTime.now();
+    }
+    
+    private void timeElapsed() {
+    	if (!activeItem)
+    	{
+    		lastUpdate = null;
+    		return;
+    	}
+    	
+    	if (lastUpdate == null)
+    		updateItems();
+		
+		DateTime now = DateTime.now();
+		Duration elapsed = new Period(lastUpdate, now).toStandardDuration();
+		lastUpdate = now;
+		
+		Duration remainingWorktimeToday = remainingWorktime.get();
+		Duration worktimeWeek = weekWorktime.get();
+		
+		remainingWorktimeToday = remainingWorktimeToday.minus(elapsed);		
+		worktimeWeek = worktimeWeek.plus(elapsed);
+		
+		remainingWorktime.set(remainingWorktimeToday);
+		weekWorktime.set(worktimeWeek);
     }
 
     @Override

@@ -19,7 +19,7 @@ public class CurrentItemChangeListenerService implements Service {
 
 	private EventBus eventBus;
 	private TimeTrackingItemQueries timeTrackingItemQueries;
-	private Object currentItem;
+	private Optional<TimeTrackingItem> currentItem;
 
 	@Inject
 	public CurrentItemChangeListenerService(EventBus eventBus, TimeTrackingItemQueries timeTrackingItemQueries) {
@@ -52,8 +52,8 @@ public class CurrentItemChangeListenerService implements Service {
 	private void checkActiveItem() {
 		Optional<TimeTrackingItem> currentTimeTrackingitem = timeTrackingItemQueries.getCurrentTimeTrackingitem();
 
-		if (currentTimeTrackingitem.isPresent() && !currentTimeTrackingitem.equals(currentItem)) {
-			eventBus.post(new CurrentItemChanged(currentTimeTrackingitem.get()));
+		if (!currentTimeTrackingitem.equals(currentItem)) {
+			eventBus.post(new CurrentItemChanged(currentTimeTrackingitem));
 			currentItem = currentTimeTrackingitem;
 		}
 		

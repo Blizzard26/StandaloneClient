@@ -97,17 +97,37 @@ public class WorkStatusService implements Service {
 	
 
 	private void checkWorktime() {
-		if ((remainingWorktimeToday.isEqual(Duration.ZERO) || remainingWorktimeToday.isShorterThan(Duration.ZERO)) 
-				&& (lastDailyWorktimeNotification == null || lastDailyWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear())) {
-			notification.info(i18n.getString("achievement.worktimeTodayReached"));
-			lastDailyWorktimeNotification = DateTime.now();
+		if (durationLessOrEqualZero(remainingWorktimeToday)) {
+			if (!today(lastDailyWorktimeNotification)) {
+				notification.info(i18n.getString("achievement.worktimeTodayReached"));
+				lastDailyWorktimeNotification = DateTime.now();
+			}
+		}
+		else
+		{
+			lastDailyWorktimeNotification = null;
 		}
 
-		if ((remainingWorktimeWeek.isEqual(Duration.ZERO) || remainingWorktimeWeek.isShorterThan(Duration.ZERO)) 
-				&& (lastWeekWorktimeNotification == null || lastWeekWorktimeNotification.getDayOfYear() != DateTime.now().getDayOfYear())) {
-			notification.info(i18n.getString("achievement.worktimeWeekReached"));
-			lastWeekWorktimeNotification = DateTime.now();
+		if (durationLessOrEqualZero(remainingWorktimeWeek)) {
+			if (!today(lastWeekWorktimeNotification)) {
+				notification.info(i18n.getString("achievement.worktimeWeekReached"));
+				lastWeekWorktimeNotification = DateTime.now();
+			}
 		}
+		else
+		{
+			lastWeekWorktimeNotification = null;
+		}
+	}
+
+	private boolean durationLessOrEqualZero(Duration duration) {
+		return duration.isEqual(Duration.ZERO) || duration.isShorterThan(Duration.ZERO);
+	}
+
+	private boolean today(DateTime dateTime) 
+	{
+		DateTime now = DateTime.now();
+		return dateTime != null && dateTime.getDayOfYear() == now.getDayOfYear() && dateTime.getYear() == now.getYear();
 	}
 
 }

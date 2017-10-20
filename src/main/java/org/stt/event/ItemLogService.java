@@ -9,6 +9,7 @@ import org.stt.Service;
 import org.stt.command.CommandParser;
 import org.stt.model.ItemDeleted;
 import org.stt.model.ItemInserted;
+import org.stt.model.ItemModified;
 import org.stt.model.ItemReplaced;
 import org.stt.model.TimeTrackingItem;
 import org.stt.time.DateTimeHelper;
@@ -57,6 +58,11 @@ public class ItemLogService implements Service {
     public void itemReplaced(ItemReplaced event) {
         log("before_update", event.beforeUpdate);
         log("after_update", event.afterUpdate);
+    }
+    
+    @Subscribe
+	public void itemChanged(ItemModified event) {
+    	log("changed", event.getItem());
     }
 
     @Override

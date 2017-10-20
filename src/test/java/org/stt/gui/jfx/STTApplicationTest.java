@@ -2,6 +2,9 @@ package org.stt.gui.jfx;
 
 import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
+
+import javafx.stage.Stage;
+
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,9 +93,12 @@ public class STTApplicationTest {
                 expansionProviders, resourceBundle, timeTrackingItemListConfig, new CommandTextConfig(), itemValidator, timeTrackingItemQueries, achievementService, executorService, grouper, worktimeCategorizer);
         sut.viewAdapter = sut.new ViewAdapter(null) {
 
+        	
+        	
             @Override
-            protected void show() throws RuntimeException {
-            }
+			protected void init() {
+				
+			}
 
             @Override
             protected void requestFocusOnCommandText() {

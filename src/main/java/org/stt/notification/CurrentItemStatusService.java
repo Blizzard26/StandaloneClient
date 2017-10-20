@@ -10,6 +10,7 @@ import org.stt.gui.Notification;
 import org.stt.model.CurrentItemChanged;
 import org.stt.model.TimeTrackingItem;
 
+import com.google.common.base.Optional;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
@@ -40,15 +41,24 @@ public class CurrentItemStatusService  implements Service{
 	@Subscribe 
 	public void onCurrentItemChanged(CurrentItemChanged event)
 	{
-		TimeTrackingItem currentItem = event.getCurrentItem();
-		
-		StringBuilder text = new StringBuilder();
-		text.append(i18n.getString("onItem")).append(" ")
-				.append(CommandParser.itemToCommand(currentItem));
-		
-		String message = text.toString();
+		Optional<TimeTrackingItem> item = event.getCurrentItem();
+		String message = null;
+		if (item.isPresent())
+		{
+			TimeTrackingItem currentItem = item.get();
+			
+			StringBuilder text = new StringBuilder();
+			text.append(i18n.getString("onItem")).append(" ")
+					.append(CommandParser.itemToCommand(currentItem));
+			
+			
+			message = text.toString();
+		}
 		notification.setStatus(message);
-		notification.info(message);
+		if (message != null)
+		{
+			notification.info(message);
+		}
 	}
 
 }
