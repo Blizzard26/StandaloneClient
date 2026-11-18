@@ -430,6 +430,8 @@ class CommandFormatterTest {
         override fun resumeLastActivity(command: ResumeLastActivity) {}
 
         override fun bulkChangeActivity(itemsToChange: Collection<TimeTrackingItem>, activity: String) {}
+
+        override fun applyCleanup(plan: CleanupPlan) {}
     }
 
     private fun retrieveItemWhenCommandIsExecuted(command: String): TimeTrackingItem {

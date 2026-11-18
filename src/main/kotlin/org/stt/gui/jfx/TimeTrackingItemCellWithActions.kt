@@ -15,6 +15,7 @@ import org.stt.gui.jfx.Glyph.Companion.glyph
 import org.stt.model.TimeTrackingItem
 import org.stt.submit.SubmitSelectionManager
 import org.stt.submit.SubmitStatusTracker
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.*
@@ -35,6 +36,7 @@ internal open class TimeTrackingItemCellWithActions(fontAwesome: Font,
     val continueButton: Button
     val deleteButton: Button
     val stopButton: Button
+    val cleanUpDayButton: Button
     private val submitCheckBox: CheckBox
     private val lastItemOnDayPane: BorderPane
 
@@ -48,6 +50,7 @@ internal open class TimeTrackingItemCellWithActions(fontAwesome: Font,
         continueButton = FramelessButton(glyph(fontAwesome, Glyph.PLAY_CIRCLE, GLYPH_SIZE_MEDIUM, Color.DARKGREEN))
         deleteButton = FramelessButton(glyph(fontAwesome, Glyph.TRASH, GLYPH_SIZE_MEDIUM, Color.web("e26868")))
         stopButton = FramelessButton(glyph(fontAwesome, Glyph.STOP_CIRCLE, GLYPH_SIZE_MEDIUM, Color.GOLDENROD))
+        cleanUpDayButton = FramelessButton(glyph(fontAwesome, Glyph.ERASER, GLYPH_SIZE_MEDIUM, Color.BLACK))
         submitCheckBox = CheckBox()
         setupTooltips(localization)
 
@@ -55,6 +58,7 @@ internal open class TimeTrackingItemCellWithActions(fontAwesome: Font,
         editButton.setOnAction { actionsHandler.edit(item) }
         deleteButton.setOnAction { actionsHandler.delete(item) }
         stopButton.setOnAction { actionsHandler.stop(item) }
+        cleanUpDayButton.setOnAction { item?.let { actionsHandler.cleanUpDay(it.start.toLocalDate()) } }
 
         submitCheckBox.setOnAction {
             val connectorId = connectorIdProvider() ?: return@setOnAction
@@ -118,6 +122,10 @@ internal open class TimeTrackingItemCellWithActions(fontAwesome: Font,
                 Callable { if (itemProperty().get() == null) "" else DATE_FORMATTER.format(itemProperty().get().start) },
                 itemProperty()))
         newDayHbox.children.add(dayLabel)
+        val spacer = Region()
+        HBox.setHgrow(spacer, Priority.ALWAYS)
+        newDayHbox.children.addAll(spacer, cleanUpDayButton)
+        newDayHbox.alignment = Pos.CENTER_LEFT
         newDayHbox.background = Background(BackgroundFill(Color.LIGHTSTEELBLUE, null, null))
         return newDayHbox
     }
@@ -131,6 +139,8 @@ internal open class TimeTrackingItemCellWithActions(fontAwesome: Font,
                 .getString("itemList.delete"))
         stopButton.tooltip = Tooltip(localization
                 .getString("itemList.stop"))
+        cleanUpDayButton.tooltip = Tooltip(localization
+                .getString("itemList.cleanUpDay"))
     }
 
     public override fun updateItem(item: TimeTrackingItem?, empty: Boolean) {
@@ -181,6 +191,9 @@ internal open class TimeTrackingItemCellWithActions(fontAwesome: Font,
         fun delete(item: TimeTrackingItem)
 
         fun stop(item: TimeTrackingItem)
+
+        /** Removes the short items of [day] after showing a preview. */
+        fun cleanUpDay(day: LocalDate)
     }
 
     companion object {

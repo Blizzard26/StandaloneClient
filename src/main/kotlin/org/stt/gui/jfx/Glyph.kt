@@ -17,6 +17,7 @@ enum class Glyph(private val code: Char) {
     CHECK('\uf00c'),
     CHEVRON_CIRCLE_RIGHT('\uf138'),
     CLIPBOARD('\uf0ea'),
+    ERASER('\uf12d'),
     PENCIL('\uf040'),
     STOP_CIRCLE('\uf28d'),
     PLAY_CIRCLE('\uf144'),
