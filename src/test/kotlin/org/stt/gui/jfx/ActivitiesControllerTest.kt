@@ -18,12 +18,16 @@ import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 import org.stt.Matchers.any
 import org.stt.Matchers.argThat
+import org.stt.command.CleanupPlan
 import org.stt.command.CommandFormatter
 import org.stt.command.CommandHandler
 import org.stt.command.DoNothing
 import org.stt.command.NewActivity
+import org.stt.command.ShortItemCleanupPlanner
 import org.stt.config.ActivitiesConfig
+import org.stt.config.ReportConfig
 import org.stt.event.ItemsSubmitted
+import org.stt.event.NotifyUser
 import org.stt.event.ShuttingDown
 import org.stt.gui.jfx.text.CommandHighlighter
 import org.stt.model.TimeTrackingItem
@@ -35,6 +39,7 @@ import org.stt.submit.SubmitStatusTracker
 import org.stt.text.ExpansionProvider
 import org.stt.validation.ItemAndDateValidator
 import java.lang.reflect.Modifier
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -59,6 +64,11 @@ class ActivitiesControllerTest {
     private var shutdownCalled: Boolean = false
     @Mock
     private lateinit var worktimeQueries: WorkTimeQueries
+    @Mock
+    private lateinit var sttOptionDialogs: STTOptionDialogs
+    @Mock
+    private lateinit var submitStatusTracker: SubmitStatusTracker
+    private val notifications = mutableListOf<String>()
 
     @Before
     fun setup() {
@@ -77,13 +87,13 @@ class ActivitiesControllerTest {
         activitiesConfig.isAskBeforeDeleting = false
         activitiesConfig.isDeleteClosesGaps = false
         val labelToNodeMapper = { it: Any -> Stream.of(it) }
-        sut = ActivitiesController(STTOptionDialogs(resourceBundle, fontAwesome, labelToNodeMapper), eventBus, commandFormatter,
+        sut = ActivitiesController(sttOptionDialogs, eventBus, commandFormatter,
                 setOf(expansionProvider), resourceBundle, activitiesConfig, itemValidator,
                 timeTrackingItemQueries, executorService, commandHandler, fontAwesome,
                 worktimePane, labelToNodeMapper, CommandHighlighter.Factory({ emptyList() }),
-                Mockito.mock(SubmitStatusTracker::class.java),
+                submitStatusTracker,
                 Mockito.mock(SubmitSelectionManager::class.java),
-                emptySet<SubmitConnector>())
+                emptySet<SubmitConnector>(), ReportConfig(), ShortItemCleanupPlanner())
         sut.commandText = StyleClassedTextArea()
     }
 
@@ -214,6 +224,71 @@ class ActivitiesControllerTest {
         verify(activityList).refresh()
     }
 
+    @Test
+    fun shouldApplyCleanupPlanWhenPreviewIsConfirmed() {
+        // GIVEN
+        givenDayWithShortItem()
+        given(sttOptionDialogs.showCleanupPreviewDialog(any())).willReturn(STTOptionDialogs.Result.PERFORM_ACTION)
+
+        // WHEN
+        sut.cleanUpDay(CLEANUP_DAY)
+
+        // THEN
+        verify(commandHandler).applyCleanup(argThat { plan: CleanupPlan -> plan.changes.size == 2 })
+    }
+
+    @Test
+    fun shouldNotApplyCleanupPlanWhenPreviewIsCancelled() {
+        // GIVEN
+        givenDayWithShortItem()
+        given(sttOptionDialogs.showCleanupPreviewDialog(any())).willReturn(STTOptionDialogs.Result.ABORT)
+
+        // WHEN
+        sut.cleanUpDay(CLEANUP_DAY)
+
+        // THEN
+        verify(commandHandler, Mockito.never()).applyCleanup(any())
+    }
+
+    @Test
+    fun shouldNotifyUserAndShowNoPreviewWhenNothingToCleanUp() {
+        // GIVEN
+        given(timeTrackingItemQueries.queryItems(any())).willReturn(Stream.of(
+                TimeTrackingItem("A", CLEANUP_DAY.atTime(9, 0), CLEANUP_DAY.atTime(10, 0))))
+
+        // WHEN
+        sut.cleanUpDay(CLEANUP_DAY)
+
+        // THEN
+        verify(sttOptionDialogs, Mockito.never()).showCleanupPreviewDialog(any())
+        verify(commandHandler, Mockito.never()).applyCleanup(any())
+        assertThat(notifications).hasSize(1)
+    }
+
+    @Test
+    fun shouldNotTreatSubmittedItemsAsShort() {
+        // GIVEN
+        givenDayWithShortItem()
+        given(submitStatusTracker.isSubmitted(any())).willReturn(true)
+
+        // WHEN
+        sut.cleanUpDay(CLEANUP_DAY)
+
+        // THEN
+        verify(sttOptionDialogs, Mockito.never()).showCleanupPreviewDialog(any())
+    }
+
+    private fun givenDayWithShortItem() {
+        given(timeTrackingItemQueries.queryItems(any())).willReturn(Stream.of(
+                TimeTrackingItem("A", CLEANUP_DAY.atTime(9, 0), CLEANUP_DAY.atTime(9, 30)),
+                TimeTrackingItem("B", CLEANUP_DAY.atTime(9, 30), CLEANUP_DAY.atTime(9, 33))))
+    }
+
+    @Handler
+    fun userWasNotified(event: NotifyUser) {
+        notifications.add(event.message)
+    }
+
     @Handler
     fun shutdownWasCalled(event: ShuttingDown) {
         shutdownCalled = true
@@ -228,5 +303,9 @@ class ActivitiesControllerTest {
 
     private fun givenCommand(command: String) {
         sut.commandText.replaceText(command)
+    }
+
+    companion object {
+        private val CLEANUP_DAY: LocalDate = LocalDate.of(2026, 11, 10)
     }
 }

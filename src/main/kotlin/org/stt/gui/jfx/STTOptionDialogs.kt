@@ -4,6 +4,8 @@ import javafx.geometry.Pos
 import javafx.scene.control.*
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
+import org.stt.command.CleanupChange
+import org.stt.command.CleanupPlan
 import org.stt.model.TimeTrackingItem
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -87,6 +89,41 @@ constructor(private val localization: ResourceBundle,
                 .orElse(Result.ABORT)
     }
 
+    /**
+     * Shows the changes of a short item cleanup (one row per removed or changed item) and asks for confirmation.
+     */
+    internal fun showCleanupPreviewDialog(plan: CleanupPlan): Result {
+        val dialog = Dialog<Result>()
+        dialog.headerText = localization.getString("cleanUp.title")
+        val dialogPane = dialog.dialogPane
+        dialogPane.prefWidth = 600.0
+        dialogPane.stylesheets.add("org/stt/gui/jfx/STT.css")
+
+        val changesList = ListView<String>()
+        changesList.items.setAll(plan.changes.map { describeChange(it) })
+
+        val borderPane = BorderPane()
+        borderPane.top = Label(localization.getString("cleanUp.text"))
+        borderPane.center = changesList
+        dialogPane.content = borderPane
+
+        val apply = ButtonType(localization.getString("cleanUp.apply"), ButtonBar.ButtonData.APPLY)
+        dialogPane.buttonTypes.addAll(apply, ButtonType.CANCEL)
+        dialog.setResultConverter { param -> if (param == apply) Result.PERFORM_ACTION else Result.ABORT }
+        return dialog.showAndWait()
+                .orElse(Result.ABORT)
+    }
+
+    private fun describeChange(change: CleanupChange): String = when (change) {
+        is CleanupChange.Removed -> String.format(localization.getString("cleanUp.removed"),
+                period(change.original), change.original.activity)
+        is CleanupChange.Changed -> String.format(localization.getString("cleanUp.changed"),
+                period(change.original), period(change.updated), change.original.activity)
+    }
+
+    private fun period(item: TimeTrackingItem): String =
+            "${TIME_FORMATTER.format(item.start)} - ${item.end?.let { TIME_FORMATTER.format(it) } ?: "..."}"
+
     internal fun showWarning(message: String) {
         val dialog = Dialog<Result>()
         dialog.headerText = localization.getString("warning")
@@ -101,5 +138,6 @@ constructor(private val localization: ResourceBundle,
 
     companion object {
         private val DATE_TIME_FORMATTER = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+        private val TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
     }
 }

@@ -64,7 +64,7 @@ When both touching neighbours of a short item have the same activity, the cleanu
 - **THEN** the result is one ongoing A started at 09:00
 
 ### Requirement: Distribute Time Between Different Neighbours
-When both touching neighbours exist and have different activities, the cleanup SHALL remove the short item and set the boundary between the neighbours to the short item's midpoint rounded to the nearest multiple of `x` (exact ties round up), clamped between the previous neighbour's start and the next neighbour's end.
+When both touching neighbours exist and have different activities, the cleanup SHALL remove the short item and set the boundary between the neighbours to the short item's midpoint rounded to the nearest multiple of `x` (exact ties round up), clamped between the previous neighbour's start and the next neighbour's end (for an ongoing next neighbour: its start, so it never starts later).
 
 #### Scenario: Split snaps to grid point inside the short item
 - **WHEN** the day contains A 09:00-09:32, B 09:32-09:36, C 09:36-10:00
@@ -77,6 +77,10 @@ When both touching neighbours exist and have different activities, the cleanup S
 #### Scenario: Exact tie rounds up
 - **WHEN** the day contains A 09:00-09:31, B 09:31-09:34, C 09:34-10:00 (midpoint 09:32:30)
 - **THEN** the result is A 09:00-09:35, C 09:35-10:00
+
+#### Scenario: Ongoing next neighbour never starts later
+- **WHEN** the day contains A 09:00-09:33, B 09:33-09:34 and an ongoing C started at 09:34 (midpoint 09:33:30 would snap to 09:35)
+- **THEN** the split is clamped to 09:34 and the result is A 09:00-09:34 and the ongoing C started at 09:34
 
 #### Scenario: Neighbour shrunk to zero length is removed
 - **WHEN** clamping places the boundary exactly on the previous neighbour's start or the next neighbour's end

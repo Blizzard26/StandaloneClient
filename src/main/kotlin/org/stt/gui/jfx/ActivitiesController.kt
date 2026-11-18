@@ -27,7 +27,9 @@ import org.stt.Streams
 import org.stt.Strings.commonPrefix
 import org.stt.command.*
 import org.stt.config.ActivitiesConfig
+import org.stt.config.ReportConfig
 import org.stt.event.ItemsSubmitted
+import org.stt.event.NotifyUser
 import org.stt.event.ShuttingDown
 import org.stt.gui.jfx.STTOptionDialogs.Result
 import org.stt.gui.jfx.TimeTrackingItemCellWithActions.ActionsHandler
@@ -48,6 +50,7 @@ import java.awt.Desktop
 import java.io.IOException
 import java.net.URI
 import java.net.URISyntaxException
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -81,7 +84,9 @@ internal constructor(private val sttOptionDialogs: STTOptionDialogs, // NOSONAR
                      private val commandHighlighterFactory: CommandHighlighter.Factory,
                      private val submitStatusTracker: SubmitStatusTracker,
                      private val submitSelectionManager: SubmitSelectionManager,
-                     private val submitConnectors: Set<@JvmSuppressWildcards SubmitConnector>) : ActionsHandler {
+                     private val submitConnectors: Set<@JvmSuppressWildcards SubmitConnector>,
+                     private val reportConfig: ReportConfig,
+                     private val cleanupPlanner: ShortItemCleanupPlanner) : ActionsHandler {
     internal val allItems = FXCollections
             .observableArrayList<TimeTrackingItem>()
     private val filterDuplicatesWhenSearching = activitiesConfig.isFilterDuplicatesWhenSearching
@@ -214,6 +219,24 @@ internal constructor(private val sttOptionDialogs: STTOptionDialogs, // NOSONAR
             } else {
                 activities.removeActivity(command)
             }
+        }
+    }
+
+    override fun cleanUpDay(day: LocalDate) {
+        LOG.fine { "Cleaning up short items of $day" }
+        val dayItems = queries.queryItems(Criteria().withPeriodAtDay(day)).use { it.toList() }
+        val plan = cleanupPlanner.plan(dayItems, day, reportConfig.roundDurationsTo) { submitStatusTracker.isSubmitted(it) }
+        if (plan.isEmpty()) {
+            eventBus.publish(NotifyUser(localization.getString("cleanUp.nothingToDo")))
+            return
+        }
+        if (sttOptionDialogs.showCleanupPreviewDialog(plan) != Result.PERFORM_ACTION) {
+            return
+        }
+        try {
+            activities.applyCleanup(plan)
+        } catch (e: IllegalStateException) {
+            sttOptionDialogs.showWarning(localization.getString("activities.submit.itemLocked"))
         }
     }
 
@@ -482,6 +505,10 @@ internal constructor(private val sttOptionDialogs: STTOptionDialogs, // NOSONAR
         }
 
         override fun bulkChangeActivity(itemsToChange: Collection<TimeTrackingItem>, activity: String) {
+            throw IllegalStateException()
+        }
+
+        override fun applyCleanup(plan: CleanupPlan) {
             throw IllegalStateException()
         }
 

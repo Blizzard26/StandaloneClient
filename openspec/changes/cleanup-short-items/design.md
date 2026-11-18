@@ -39,7 +39,7 @@ The planner keeps a sorted working list of slots `(original, current?)`. Each st
 A neighbour (the adjacent slot in the working list, whose current item is non-null) is *eligible* when: it touches the short item exactly, it starts on `day`, and `isLocked(original)` is false. Ineligible neighbours are treated as gaps. The isolated-deletion rule distinguishes "no touching neighbour at all" (delete) from "touching but locked" (keep).
 
 ### D4: Grid snapping
-`snap(t) = dayStart + round((t - dayStart) / x) * x`, ties up, where `dayStart` is midnight of `day` and computed in milliseconds (like `DurationRounder`). The midpoint is `start + (end - start) / 2`. The result is clamped to `[prev.start, next.end ?: +inf]`; if it equals a bound, that neighbour becomes zero-length and is removed. Implemented as a small private helper in the planner (not in `DurationRounder`, whose tie semantics differ for durations).
+`snap(t) = dayStart + round((t - dayStart) / x) * x`, ties up, where `dayStart` is midnight of `day` and computed in milliseconds (like `DurationRounder`). The midpoint is `start + (end - start) / 2`. The result is clamped to `[prev.start, next.end ?: next.start]`; if it equals a bound, that neighbour becomes zero-length and is removed. Implemented as a small private helper in the planner (not in `DurationRounder`, whose tie semantics differ for durations).
 
 ### D5: Write order in `applyCleanup`
 1. Call `requireNotSubmitted` on every `original` in the plan **before** writing anything (all-or-nothing lock check; covers items submitted between preview and confirm).
@@ -51,7 +51,7 @@ Deleting first guarantees `InsertHelper` never truncates an item that is part of
 *Alternative:* using `persister.replace` per change — rejected, intermediate states overlap and `InsertHelper` would cut items that are still to be processed.
 
 ### D6: Ongoing item
-An ongoing item (`end == null`) is never short. As next neighbour its outer bound is unbounded; merging into it yields `previous.withPendingEnd()`; absorbing moves its start earlier via `withStart`.
+An ongoing item (`end == null`) is never short. As next neighbour of a distribution, the upper bound for the split is its current start (it may grow earlier but never shrinks or starts in the future; see decisions.md Q1); merging into it yields `previous.withPendingEnd()`; absorbing moves its start earlier via `withStart`.
 
 ### D7: UI wiring
 - `TimeTrackingItemCellWithActions`: add a small `FramelessButton` with a broom/compress glyph and tooltip to `newDayNode`; on action call `actionsHandler.cleanUpDay(item.start.toLocalDate())`.

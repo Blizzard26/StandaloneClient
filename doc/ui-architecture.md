@@ -25,6 +25,7 @@ Primary workspace: enter new time entries, view/search history, edit/delete/cont
 | **Command text area** (`StyleClassedTextArea` via RichTextFX) | Type activity text (ANTLR grammar); `Ctrl+Enter` executes, `Ctrl+Space` auto-completes | Parsed into `Command` sealed hierarchy (`StartItem`, `StopItem`, `DeleteItem`, `EditItem`, ...) |
 | **Activity list** (`ListView<TimeTrackingItem>`) | Scrollable list of all items, grouped by day with date headers | `ObservableArrayList<TimeTrackingItem>` — full in-memory set |
 | **Per-item action buttons** (continue, stop, edit, delete) | Appear on hover via `FadeTransition` in `TimeTrackingItemCellWithActions` | Operates on a single `TimeTrackingItem` |
+| **Day-header cleanup button** (eraser glyph in the date bar) | Removes the day's items shorter than `ReportConfig.roundDurationsTo` (merge same-activity neighbours, otherwise split at the nearest rounding-grid point) after a preview | `ShortItemCleanupPlanner` → `CleanupPlan` → `CommandHandler.applyCleanup` |
 | **Search/filter field** | Real-time list filtering | Filters `allItems` by activity text match via `TimeTrackingListFilter` |
 | **Worktime pane** (`WorktimePane`, embedded `FlowPane`) | Shows remaining worktime today (or overtime) and weekly total | Queries `WorkTimeQueries`; updates every 1s via `TimePassedEvent` |
 
@@ -35,6 +36,7 @@ Primary workspace: enter new time entries, view/search history, edit/delete/cont
 - Overlap warning: `STTOptionDialogs.showItemCoversOtherItemsDialog()`
 - Bulk-rename prompt: `STTOptionDialogs.showRenameDialog()`
 - No-current-item: `STTOptionDialogs.showNoCurrentItemAndItemIsLaterDialog()`
+- Short-item cleanup preview: `STTOptionDialogs.showCleanupPreviewDialog()` (lists removed / changed items; nothing is written before Apply)
 
 ---
 

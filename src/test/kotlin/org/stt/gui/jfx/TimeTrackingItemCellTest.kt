@@ -11,6 +11,7 @@ import org.stt.gui.jfx.TimeTrackingItemCellWithActions.ActionsHandler
 import org.stt.model.TimeTrackingItem
 import org.stt.submit.SubmitSelectionManager
 import org.stt.submit.SubmitStatusTracker
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 import java.util.function.Predicate
@@ -92,5 +93,18 @@ class TimeTrackingItemCellTest {
 
         // THEN
         verify<ActionsHandler>(actionsHandler).stop(item)
+    }
+
+    @Test
+    fun shouldCallCleanUpDayHandlerWithItemDateOnClickOnCleanUpDay() {
+        // GIVEN
+        val item = TimeTrackingItem("test", LocalDateTime.of(2026, 11, 10, 9, 0), LocalDateTime.of(2026, 11, 10, 9, 3))
+        sut!!.updateItem(item, false)
+
+        // WHEN
+        sut!!.cleanUpDayButton.fire()
+
+        // THEN
+        verify<ActionsHandler>(actionsHandler).cleanUpDay(LocalDate.of(2026, 11, 10))
     }
 }

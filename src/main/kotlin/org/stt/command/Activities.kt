@@ -129,6 +129,23 @@ constructor(private val persister: ItemPersister,
                 .forEach { publisher.publish(it) }
     }
 
+    override fun applyCleanup(plan: CleanupPlan) {
+        val changes = plan.changes
+        changes.forEach { submitStatusTracker.requireNotSubmitted(it.original) }
+
+        changes.forEach { persister.delete(it.original) }
+        changes.filterIsInstance<CleanupChange.Changed>()
+                .sortedBy { it.updated.start }
+                .forEach { persister.persist(it.updated) }
+
+        changes.forEach {
+            when (it) {
+                is CleanupChange.Removed -> publisher.publish(ItemDeleted(it.original))
+                is CleanupChange.Changed -> publisher.publish(ItemReplaced(it.original, it.updated))
+            }
+        }
+    }
+
     private class DoNotPublish : PubSubSupport<Any> {
         override fun subscribe(listener: Any) {
             throw IllegalStateException()
